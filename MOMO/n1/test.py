@@ -69,31 +69,39 @@ class TestOptim1d(unittest.TestCase):
 
     def test_golden(self):
         for i in range(len(fun)):
-            res = min_golden(fun[i], ans[i]['a'], ans[i]['b'], tol=tol)
+            x_min, f_min, status = min_golden(
+                fun[i], ans[i]['a'], ans[i]['b'], tol=tol
+            )
             msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(res['x_min'], ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(res['f_min'], ans[i]['min'], digits, msg)
+            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
+            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
 
     def test_parabolic(self):
         for i in range(len(fun)):
-            res = min_parabolic(fun[i], ans[i]['a'], ans[i]['b'], tol=tol)
+            x_min, f_min, status = min_parabolic(
+                fun[i], ans[i]['a'], ans[i]['b'], tol=tol
+            )
             msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(res['x_min'], ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(res['f_min'], ans[i]['min'], digits, msg)
+            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
+            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
 
     def test_brent(self):
         for i in range(len(fun)):
-            res = min_brent(fun[i], ans[i]['a'], ans[i]['b'], tol=tol)
+            x_min, f_min, status = min_brent(
+                fun[i], ans[i]['a'], ans[i]['b'], tol=tol
+            )
             msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(res['x_min'], ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(res['f_min'], ans[i]['min'], digits, msg)
+            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
+            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
 
     def test_secant(self):
         for i in range(len(fun_der)):
-            res = min_secant(fun_der[i], ans[i]['a'], ans[i]['b'], tol=tol)
+            x_min, f_min, status = min_secant(
+                fun_der[i], ans[i]['a'], ans[i]['b'], tol=tol
+            )
             msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(res['x_min'], ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(res['f_min'], ans[i]['min'], digits, msg)
+            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
+            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
 
 
 if __name__ == '__main__':

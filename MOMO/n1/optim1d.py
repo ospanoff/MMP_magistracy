@@ -70,18 +70,14 @@ def min_golden(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
                     Точки итерационного процесса.
                 f: np.ndarray
                     Значения функции в точках x.
-
-        n_evals: np.ndarray
-            Суммарное число вызовов оракула на текущий момент.
+                n_evals: np.ndarray
+                    Суммарное число вызовов оракула на текущий момент.
     """
 
     status = 1
-    n_evals = []
     disp_dig = int(np.abs(np.log10(tol)))
     digits = disp_dig if rnd else 20
-    hist = dict()
-    hist['x'] = []
-    hist['f'] = []
+    hist = {'x': [], 'f': [], 'n_evals': []}
 
     x_l, x_r = a, b
     K = (5 ** 0.5 - 1) / 2
@@ -104,30 +100,37 @@ def min_golden(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
         if trace:
             hist['x'] += [round(h[0], digits)]
             hist['f'] += [round(h[1], digits)]
+            # +2 for first oracul call before the loop
+            hist['n_evals'] += [k + 1 + 2]
 
         if disp:
             tpl = "iter. #{0}:\tx={1: .{4}f},\tf={2: .{4}f},\tI={3: .{4}f}"
             print(tpl.format(k + 1, h[0], h[1], J, disp_dig))
 
-        n_evals += [k + 1 + 2]  # +2 for first oracul call before the loop
+        x_min, f_min = h
 
         if J < tol:
             status = 0
-            x_min, f_min = h
             break
 
-    ret = {
-        "x_min": round(x_min, digits + 1),
-        "f_min": round(f_min, digits + 1),
-        "status": status,
-        "n_evals": np.array(n_evals)
-    }
     if trace:
         hist['x'] = np.array(hist['x'])
         hist['f'] = np.array(hist['f'])
-        ret["hist"] = hist
+        hist['n_evals'] = np.array(hist['n_evals'])
 
-    return ret
+        return (
+            round(x_min, digits + 1),
+            round(f_min, digits + 1),
+            status,
+            hist
+        )
+
+    else:
+        return (
+            round(x_min, digits + 1),
+            round(f_min, digits + 1),
+            status
+        )
 
 
 def min_parabolic(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
@@ -188,18 +191,14 @@ def min_parabolic(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
                     Точки итерационного процесса.
                 f: np.ndarray
                     Значения функции в точках x.
-
-        n_evals: np.ndarray
-            Суммарное число вызовов оракула на текущий момент.
+                n_evals: np.ndarray
+                    Суммарное число вызовов оракула на текущий момент.
     """
 
     status = 1
-    n_evals = []
     disp_dig = int(np.abs(np.log10(tol)))
     digits = disp_dig if rnd else 20
-    hist = dict()
-    hist['x'] = []
-    hist['f'] = []
+    hist = {'x': [], 'f': [], 'n_evals': []}
 
     x_l, x_r = a, b
     x = (a + b) / 2
@@ -217,11 +216,11 @@ def min_parabolic(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
             break
 
         f_u = func(u)
-        n_evals += [k + 1 + 3]  # +3 before the loop
 
         if trace:
             hist['x'] += [round(u, digits)]
             hist['f'] += [round(f_u, digits)]
+            hist['n_evals'] += [k + 1 + 3]  # +3 before the loop
 
         if disp:
             tpl = ("iter. #{0}:\tx={1: .{5}f},\tf={2: .{5}f},\t" +
@@ -244,19 +243,24 @@ def min_parabolic(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
             else:
                 x_r = u
 
-    ret = {
-        "x_min": round(x, digits + 1),
-        "f_min": round(f, digits + 1),
-        "status": status,
-        "n_evals": np.array(n_evals)
-    }
-
     if trace:
         hist['x'] = np.array(hist['x'])
         hist['f'] = np.array(hist['f'])
-        ret["hist"] = hist
+        hist['n_evals'] = np.array(hist['n_evals'])
 
-    return ret
+        return (
+            round(x, digits + 1),
+            round(f, digits + 1),
+            status,
+            hist
+        )
+
+    else:
+        return (
+            round(x, digits + 1),
+            round(f, digits + 1),
+            status
+        )
 
 
 def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
@@ -317,18 +321,14 @@ def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
                     Точки итерационного процесса.
                 f: np.ndarray
                     Значения функции в точках x.
-
-        n_evals: np.ndarray
-            Суммарное число вызовов оракула на текущий момент.
+                n_evals: np.ndarray
+                    Суммарное число вызовов оракула на текущий момент.
     """
 
     status = 1
-    n_evals = []
     disp_dig = int(np.abs(np.log10(tol)))
     digits = disp_dig if rnd else 20
-    hist = dict()
-    hist['x'] = []
-    hist['f'] = []
+    hist = {'x': [], 'f': [], 'n_evals': []}
 
     K = (3 - 5 ** 0.5) / 2
     x = w = v = a + K * (b - a)
@@ -338,9 +338,9 @@ def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
     for k in range(max_iter):
         g, e = e, d
 
-        rtol = tol * np.abs(x) + tol / 10
+        rtol = tol * np.abs(x) + tol / 100
 
-        if np.abs(x - (a + b) / 2) + (b - a) / 2 < 2 * rtol:
+        if d < tol:  # np.abs(x - (a + b) / 2) + (b - a) / 2 < 2 * rtol:
             status = 0
             break
 
@@ -369,11 +369,11 @@ def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
             u = x + np.sign(u - x) * rtol
 
         f_u = func(u)
-        n_evals += [k + 1 + 1]  # +1 before the loop
 
         if trace:
             hist['x'] += [round(u, digits)]
             hist['f'] += [round(f_u, digits)]
+            hist['n_evals'] += [k + 1 + 1]  # +1 before the loop
 
         if disp:
             method = "parabolic" if u_admitted else "golden"
@@ -406,18 +406,24 @@ def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
                 v = u
                 f_v = f_u
 
-    ret = {
-        "x_min": round(u, digits + 1),
-        "f_min": round(f_u, digits + 1),
-        "status": status,
-        "n_evals": np.array(n_evals)
-    }
     if trace:
         hist['x'] = np.array(hist['x'])
         hist['f'] = np.array(hist['f'])
-        ret["hist"] = hist
+        hist['n_evals'] = np.array(hist['n_evals'])
 
-    return ret
+        return (
+            round(u, digits + 1),
+            round(f_u, digits + 1),
+            status,
+            hist
+        )
+
+    else:
+        return (
+            round(u, digits + 1),
+            round(f_u, digits + 1),
+            status
+        )
 
 
 def min_secant(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
@@ -481,18 +487,14 @@ def min_secant(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
                     Точки итерационного процесса.
                 f: np.ndarray
                     Значения функции в точках x.
-
-        n_evals: np.ndarray
-            Суммарное число вызовов оракула на текущий момент.
+                n_evals: np.ndarray
+                    Суммарное число вызовов оракула на текущий момент.
     """
 
     status = 1
-    n_evals = []
     disp_dig = int(np.abs(np.log10(tol)))
     digits = disp_dig if rnd else 20
-    hist = dict()
-    hist['x'] = []
-    hist['f'] = []
+    hist = {'x': [], 'f': [], 'n_evals': []}
 
     f_a = func(a)
     f_b = func(b)
@@ -505,12 +507,12 @@ def min_secant(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
         if trace:
             hist['x'] += [round(u, digits)]
             hist['f'] += [round(f[0], digits)]
+            # +2 for the first oracul calls before the loop
+            hist['n_evals'] += [k + 1 + 2]
 
         if disp:
             tpl = "iter. #{0}:\tx={1: .{4}f},\tf={2: .{4}f},\tf'={3: .{4}f}"
             print(tpl.format(k + 1, u, f[0], f[1], disp_dig))
-
-        n_evals += [k + 1 + 2]  # +2 for the first oracul calls before the loop
 
         if np.abs(x_min - u) < tol:
             status = 0
@@ -527,18 +529,24 @@ def min_secant(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
 
         x_min = u
 
-    ret = {
-        "x_min": round(x_min, digits + 1),
-        "f_min": round(func(x_min)[0], digits + 1),
-        "status": status,
-        "n_evals": np.array(n_evals)
-    }
     if trace:
         hist['x'] = np.array(hist['x'])
         hist['f'] = np.array(hist['f'])
-        ret["hist"] = hist
+        hist['n_evals'] = np.array(hist['n_evals'])
 
-    return ret
+        return (
+            round(x_min, digits + 1),
+            round(func(x_min)[0], digits + 1),
+            status,
+            hist
+        )
+
+    else:
+        return (
+            round(x_min, digits + 1),
+            round(func(x_min)[0], digits + 1),
+            status
+        )
 
 
 def min_brent_der(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
@@ -602,7 +610,6 @@ def min_brent_der(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
                     Точки итерационного процесса.
                 f: np.ndarray
                     Значения функции в точках x.
-
-        n_evals: np.ndarray
-            Суммарное число вызовов оракула на текущий момент.
+                n_evals: np.ndarray
+                    Суммарное число вызовов оракула на текущий момент.
     """
