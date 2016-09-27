@@ -50,7 +50,7 @@ testing_pairs = (
     annotated(min_parabolic, func),
     annotated(min_brent, func),
     annotated(min_secant, func_der),
-    # annotated(min_brent_der, func_der),
+    annotated(min_brent_der, func_der),
 )
 
 @ddt

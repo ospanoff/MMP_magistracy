@@ -1,7 +1,8 @@
 import unittest
 import sys
 import numpy as np
-from optim1d import min_brent, min_golden, min_parabolic, min_secant
+from optim1d import min_brent, min_golden, min_parabolic,\
+    min_secant, min_brent_der
 
 
 def fun1(x):
@@ -57,8 +58,8 @@ ans = [{'min': 0.8976329719, 'x': 0.1098599151, 'a': -0.5, 'b': 0.5},
        {'min': 5.1483404214, 'x': 0.2407945677, 'a': 0, 'b': 1},
        {'min': 0.3509778801, 'x': 2.1246397718, 'a': 0.5, 'b': 2.5}]
 
-digits = 3
-tol = 1e-5
+digits = 5
+tol = 1e-6
 
 
 class TestOptim1d(unittest.TestCase):
@@ -68,47 +69,50 @@ class TestOptim1d(unittest.TestCase):
         return self.assertEqual(a, b, msg)
 
     def test_golden(self):
-        for i in range(len(fun)):
-            x_min, f_min, status = min_golden(
-                fun[i], ans[i]['a'], ans[i]['b'], tol=tol
-            )
-            msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
+        for f, a in zip(fun, ans):
+            x_min, f_min, status = min_golden(f, a['a'], a['b'], tol=tol)
+            msg = "on func " + f.__name__
+            self.assertAlmostEqual(x_min, a['x'], digits, msg)
+            self.assertAlmostEqual(f_min, a['min'], digits, msg)
 
     def test_parabolic(self):
-        for i in range(len(fun)):
-            x_min, f_min, status = min_parabolic(
-                fun[i], ans[i]['a'], ans[i]['b'], tol=tol
-            )
-            msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
+        for f, a in zip(fun, ans):
+            x_min, f_min, status = min_parabolic(f, a['a'], a['b'], tol=tol)
+            msg = "on func " + f.__name__
+            self.assertAlmostEqual(x_min, a['x'], digits, msg)
+            self.assertAlmostEqual(f_min, a['min'], digits, msg)
 
     def test_brent(self):
-        for i in range(len(fun)):
-            x_min, f_min, status = min_brent(
-                fun[i], ans[i]['a'], ans[i]['b'], tol=tol
-            )
-            msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
+        for f, a in zip(fun, ans):
+            x_min, f_min, status = min_brent(f, a['a'], a['b'], tol=tol)
+            msg = "on func " + f.__name__
+            self.assertAlmostEqual(x_min, a['x'], digits, msg)
+            self.assertAlmostEqual(f_min, a['min'], digits, msg)
 
     def test_secant(self):
-        for i in range(len(fun_der)):
-            x_min, f_min, status = min_secant(
-                fun_der[i], ans[i]['a'], ans[i]['b'], tol=tol
-            )
-            msg = "on func " + str(i + 1)
-            self.assertAlmostEqual(x_min, ans[i]['x'], digits, msg)
-            self.assertAlmostEqual(f_min, ans[i]['min'], digits, msg)
+        for f, a in zip(fun_der, ans):
+            x_min, f_min, status = min_secant(f, a['a'], a['b'], tol=tol)
+            msg = "on func " + f.__name__
+            self.assertAlmostEqual(x_min, a['x'], digits, msg)
+            self.assertAlmostEqual(f_min, a['min'], digits, msg)
+
+    def test_brent_der(self):
+        for f, a in zip(fun_der, ans):
+            x_min, f_min, status = min_brent_der(f, a['a'], a['b'], tol=tol)
+            msg = "on func " + f.__name__
+            self.assertAlmostEqual(x_min, a['x'], digits, msg)
+            self.assertAlmostEqual(f_min, a['min'], digits, msg)
 
 
 if __name__ == '__main__':
     try:
         digits = int(sys.argv[1])
-        tol = float(sys.argv[2])
+        tol = int(sys.argv[2])
+        tol = 1 / 10 ** tol
     except:
         pass
+
+    print("checking up to %s digits" % digits)
+    print("computing with %s tol" % tol)
 
     unittest.main(argv=[""])
