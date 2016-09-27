@@ -77,7 +77,6 @@ def min_golden(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
     status = 1
     disp_dig = int(np.fabs(np.log10(tol))) + 1
     digits = disp_dig if rnd else 20
-    hist = {'x': [], 'f': [], 'n_evals': []}
 
     x_l, x_r = a, b
     K = (5 ** 0.5 - 1) / 2
@@ -85,17 +84,20 @@ def min_golden(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
     x_a, x_b = x_r - J, x_l + J
     f_a, f_b = func(x_a), func(x_b)
 
+    h = (x_a, f_a) if f_a <= f_b else (x_b, f_b)
+    hist = {'x': [h[0]], 'f': [h[1]], 'n_evals': [2]}
+
     for k in range(max_iter):
         J *= K
         if f_a <= f_b:
             x_a, x_b, x_r = x_b - J, x_a, x_b
             f_a, f_b = func(x_a), f_a
-            h = x_a, f_a
 
         else:
             x_l, x_a, x_b = x_a, x_b, x_a + J
             f_a, f_b = f_b, func(x_b)
-            h = x_b, f_b
+
+        h = (x_a, f_a) if f_a <= f_b else (x_b, f_b)
 
         if trace:
             hist['x'] += [round(h[0], digits)]
@@ -198,11 +200,12 @@ def min_parabolic(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
     status = 1
     disp_dig = int(np.fabs(np.log10(tol))) + 1
     digits = disp_dig if rnd else 20
-    hist = {'x': [], 'f': [], 'n_evals': []}
 
     x_l, x_r = a, b
     x = (a + b) / 2
     f_l, f, f_r = func(x_l), func(x), func(x_r)
+
+    hist = {'x': [x], 'f': [f], 'n_evals': [3]}
 
     for k in range(max_iter):
         if neq(x, x_l, x_r) and neq(f, f_l, f_r):
@@ -217,16 +220,6 @@ def min_parabolic(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
             break
 
         f_u = func(u)
-
-        if trace:
-            hist['x'] += [round(u, digits)]
-            hist['f'] += [round(f_u, digits)]
-            hist['n_evals'] += [k + 1 + 3]  # +3 before the loop
-
-        if disp:
-            tpl = ("iter. #{0}:\tx={1: .{5}f},\tf={2: .{5}f},\t" +
-                   "x_l={3: .{5}f},\tx_r={4: .{5}f}")
-            print(tpl.format(k + 1, u, f_u, x_l, x_r, disp_dig))
 
         if f_u <= f:
             if u <= x:
@@ -245,6 +238,16 @@ def min_parabolic(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
             else:
                 x_r = u
                 f_r = f_u
+
+        if trace:
+            hist['x'] += [round(x, digits)]
+            hist['f'] += [round(f, digits)]
+            hist['n_evals'] += [k + 1 + 3]  # +3 before the loop
+
+        if disp:
+            tpl = ("iter. #{0}:\tx={1: .{5}f},\tf={2: .{5}f},\t" +
+                   "x_l={3: .{5}f},\tx_r={4: .{5}f}")
+            print(tpl.format(k + 1, x, f, x_l, x_r, disp_dig))
 
     if trace:
         hist['x'] = np.array(hist['x'])
@@ -331,12 +334,13 @@ def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
     status = 1
     disp_dig = int(np.fabs(np.log10(tol))) + 1
     digits = disp_dig if rnd else 20
-    hist = {'x': [], 'f': [], 'n_evals': []}
 
     K = (3 - 5 ** 0.5) / 2
     x = w = v = a + K * (b - a)
     f_x = f_w = f_v = func(x)
     d = e = b - a
+
+    hist = {'x': [x], 'f': [f_x], 'n_evals': [1]}
 
     for k in range(max_iter):
         g, e = e, d
@@ -366,17 +370,6 @@ def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
 
         f_u = func(u)
 
-        if trace:
-            hist['x'] += [round(u, digits)]
-            hist['f'] += [round(f_u, digits)]
-            hist['n_evals'] += [k + 1 + 1]  # +1 before the loop
-
-        if disp:
-            method = "parabolic" if u_admitted else "golden"
-            tpl = "iter. #{0}:\tx={1: .{4}f},\tf={2: .{4}f},\t" + \
-                  "dist={3: .{4}f},\t method={5}"
-            print(tpl.format(k + 1, u, f_u, d, disp_dig, method))
-
         if f_u <= f_x:
             if u >= x:
                 a = x
@@ -401,6 +394,17 @@ def min_brent(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
             elif f_u <= f_v or v == x or v == w:
                 v = u
                 f_v = f_u
+
+        if trace:
+            hist['x'] += [round(x, digits)]
+            hist['f'] += [round(f_x, digits)]
+            hist['n_evals'] += [k + 1 + 1]  # +1 before the loop
+
+        if disp:
+            method = "parabolic" if u_admitted else "golden"
+            tpl = "iter. #{0}:\tx={1: .{4}f},\tf={2: .{4}f},\t" + \
+                  "dist={3: .{4}f},\t method={5}"
+            print(tpl.format(k + 1, x, f_x, d, disp_dig, method))
 
     if trace:
         hist['x'] = np.array(hist['x'])
@@ -497,6 +501,7 @@ def min_secant(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
 
     for k in range(max_iter):
         u = b - f_b[1] * (b - a) / (f_b[1] - f_a[1])
+
         f = func(u)
 
         if trace:
@@ -609,7 +614,6 @@ def min_brent_der(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
     status = 1
     disp_dig = int(np.fabs(np.log10(tol))) + 1
     digits = disp_dig if rnd else 20
-    hist = {'x': [], 'f': [], 'n_evals': []}
 
     x = w = v = (a + b) / 2
     fdf_x = func(x)
@@ -617,6 +621,8 @@ def min_brent_der(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
     df_x = df_w = df_v = fdf_x[1]
 
     d = e = b - a
+
+    hist = {'x': [x], 'f': [f_x], 'n_evals': [1]}
 
     for k in range(max_iter):
         g, e = e, d
@@ -658,22 +664,11 @@ def min_brent_der(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
 
             else:
                 u = (x + b) / 2
-                e = b - xv
+                e = b - x
 
         d = np.fabs(x - u)
 
         f_u, df_u = func(u)
-
-        if trace:
-            hist['x'] += [round(u, digits)]
-            hist['f'] += [round(f_u, digits)]
-            hist['n_evals'] += [k + 1 + 1]  # +1 before the loop
-
-        if disp:
-            method = "parabolic" if u1_admitted or u2_admitted else "bisection"
-            tpl = "iter. #{0}:\tx={1: .{4}f},\tf={2: .{4}f},\t" + \
-                  "f'={6: .{4}f},\tdist={3: .{4}f},\t method={5}"
-            print(tpl.format(k + 1, u, f_u, d, disp_dig, method, df_u))
 
         if f_u <= f_x:
             if u >= x:
@@ -702,6 +697,17 @@ def min_brent_der(func, a, b, tol=1e-5, max_iter=500, disp=False, trace=False,
                 v = u
                 f_v = f_u
                 df_v = df_u
+
+        if trace:
+            hist['x'] += [round(x, digits)]
+            hist['f'] += [round(f_x, digits)]
+            hist['n_evals'] += [k + 1 + 1]  # +1 before the loop
+
+        if disp:
+            method = "parabolic" if u1_admitted or u2_admitted else "bisection"
+            tpl = "iter. #{0}:\tx={1: .{4}f},\tf={2: .{4}f},\t" + \
+                  "f'={6: .{4}f},\tdist={3: .{4}f},\t method={5}"
+            print(tpl.format(k + 1, x, f_x, d, disp_dig, method, df_u))
 
     if trace:
         hist['x'] = np.array(hist['x'])
