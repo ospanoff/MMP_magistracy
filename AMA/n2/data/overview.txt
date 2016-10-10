@@ -1,0 +1,58 @@
+Files
+cwurData.csv (182.02 KB)
+    world_rank - world rank for university.
+    university_name - name of university.
+    country - country of each university.
+    national_rank - rank of university within its country.
+    quality_of_education - rank for quality of education.
+    alumni_employment - rank for alumni employment.
+    quality_of_faculty - rank for quality of faculty.
+    publications - rank for publications.
+    influence - rank for influence.
+    citations - rank for citations.
+    broad_impact - rank for broad impact (only available for 2014 and 2015)
+    patents - rank for patents.
+    score - total score, used for determining world rank.
+    year - year of ranking (2012 to 2015).
+
+education_expenditure_supplementary_data.csv (19.29 KB)
+    country - A set of OECD countries, plus Brazil and the Russian Federation, plus an OECD average.
+    institute_type - All Institutes (including preprimary education and subsidies to households, not separately shown), Elementary and secondary institutions (excludes preprimary), Higher education institutions.
+    direct_expenditure_type - Public direct expenditure, private direct expenditure, or total (public + private) direct expenditure. (Private and total data are only available for 2011)
+    1995, 2000, 2005, 2009, 2010, 2011 - years
+
+educational_attainment_supplementary_data.csv (1.18 MB)
+    Barro-Lee Dataset (2014) - Average years of schooling; Educational attainment among age groups and genders; Population distributions. 144 countries. 1985-2010 in 5 year intervals.
+    UNESCO Institute for Statistics (UIS) - Mean years of schooling; Percentage of population (age 25+) by educational attainment. 152 countries. 1985-2015.
+
+school_and_country_table.csv (31.49 KB)
+    A lookup table for university against country from the timesData file. This is to be used to populate country data for the shanghai rankings, which are missing countries.
+
+shanghaiData.csv (353.48 KB)
+    world_rank - world rank for university. Contains rank ranges and equal ranks (eg. 101-152).
+    university_name - name of university.
+    national_rank - rank of university within its country.
+    total_score - total score, used to determine rank.
+    alumni - Alumni Score, based on the number of alumni of an institution winning nobel prizes and fields medals.
+    award - Award Score, based on the number of staff of an institution winning Nobel Prizes in Physics, Chemistry, Medicine, and Economics and Fields Medals in Mathematics.
+    hici - HiCi Score, based on the number of Highly Cited Researchers selected by Thomson Reuters.
+    ns - N&S Score, based on the number of papers published in Nature and Science.
+    pub - PUB Score, based on total number of papers indexed in the Science Citation Index-Expanded and Social Science Citation Index.
+    pcp - PCP Score, the weighted scores of the above five indicators divided by the number of full time academic staff.
+    year - year of ranking (2005 to 2015).
+
+timesData.csv (261.94 KB)
+    world_rank - world rank for the university. Contains rank ranges and equal ranks (eg. =94 and 201-250).
+    university_name - name of university.
+    country - country of each university.
+    teaching - university score for teaching (the learning environment).
+    international - university score international outlook (staff, students, research).
+    research - university score for research (volume, income and reputation).
+    citations - university score for citations (research influence).
+    income - university score for industry income (knowledge transfer).
+    total_score - total score for university, used to determine rank.
+    num_students - number of students at the university.
+    student_staff_ratio - Number of students divided by number of staff.
+    international_students - Percentage of students who are international.
+    female_male_ratio - Female student to Male student ratio.
+    year - year of the ranking (2011 to 2016 included).
