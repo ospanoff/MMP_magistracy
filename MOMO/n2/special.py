@@ -115,3 +115,16 @@ def gen_symm_matr(kappa, n):
     S = np.diag(s)
 
     return np.dot(Q, S.dot(Q.T))
+
+
+class FuncWrapper:
+    def __init__(self, func):
+        self.func = func
+        self.x_last = None
+        self.out_last = None
+
+    def __call__(self, x):
+        if self.x_last is None or not np.all(self.x_last == x):
+            self.out_last = self.func(x)
+            self.x_last = np.copy(x)
+        return self.out_last

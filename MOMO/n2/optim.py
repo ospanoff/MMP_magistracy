@@ -1,4 +1,7 @@
 import numpy as np
+from special import FuncWrapper
+from scipy.optimize.linesearch import line_search_wolfe2
+import time
 
 
 def cg(matvec, b, x0, tol=1e-4, max_iter=None, disp=False, trace=False):
@@ -58,17 +61,30 @@ def cg(matvec, b, x0, tol=1e-4, max_iter=None, disp=False, trace=False):
     d = -g
     u = matvec(d)
 
-    hist = {'norm_r': [g.max()]}
+    hist = {'norm_r': [np.linalg.norm(g, ord=np.inf)]}
 
-    norm = np.dot(g, g)
+    norm = g.dot(g)
 
     for k in range(b.size if max_iter is None else max_iter):
-        alpha = norm / np.dot(d, u)
+        alpha = norm / d.dot(u)
 
         x0 += alpha * d
         g += alpha * u
 
-        norm_new = np.dot(g, g)
+        norm_new = g.dot(g)
+
+        norm_r = np.linalg.norm(g, ord=np.inf)
+
+        if disp:
+            tpl = "iter. #{iter}: ||r||={norm: .{tol}f}\t"
+            print(tpl.format(iter=k, norm=norm_r, tol=disp_dig))
+
+        if trace:
+            hist['norm_r'] += [norm_r]
+
+        if norm_r < tol:
+            status = 0
+            break
 
         beta = norm_new / norm
 
@@ -76,17 +92,6 @@ def cg(matvec, b, x0, tol=1e-4, max_iter=None, disp=False, trace=False):
         u = matvec(d)
 
         norm = norm_new
-
-        if disp:
-            tpl = "iter. #{iter}:\t||r||={norm: .{tol}f}\t"
-            print(tpl.format(iter=k, norm=g.max(), tol=disp_dig))
-
-        if trace:
-            hist['norm_r'] += [g.max()]
-
-        if norm < tol:
-            status = 0
-            break
 
     if trace:
         hist['norm_r'] = np.array(hist['norm_r'])
@@ -170,6 +175,79 @@ def ncg(func, x0, tol=1e-4, max_iter=500, c1=1e-4, c2=0.1, disp=False,
                 Реальное время, пройденное с начала оптимизации
 
     """
+    func_wrapper = FuncWrapper(func)
+
+    disp_dig = int(np.fabs(np.log10(tol))) + 1
+
+    f, g_old = func(x0)
+    d = -g_old
+
+    n_evals = 1
+    status = 1
+    hist = {
+        'f': [f],
+        'norm_g': [np.linalg.norm(g_old, ord=np.inf)],
+        'n_evals': [n_evals],
+        'elaps_t': [0]
+    }
+    start = time.time()
+
+    for k in range(max_iter):
+        alpha, fc = line_search_wolfe2(lambda x: func_wrapper(x)[0],
+                                       lambda x: func_wrapper(x)[1],
+                                       x0, d, g_old, c1=c2, c2=c2)[:2]
+
+        x0 += alpha * d
+
+        f, g = func(x0)
+        n_evals += 1 + fc
+
+        norm_g = np.linalg.norm(g, ord=np.inf)
+
+        el_t = time.time() - start
+
+        if disp:
+            tpl = "iter. #{iter}: ||g||={norm: .{tol}f},\t" +\
+                  "alpha={al: .{tol}f},\tn_evals={n_evals},\t" +\
+                  "elaps_t={el_t: .{tol}f}"
+            print(tpl.format(iter=k, norm=norm_g, al=alpha, n_evals=n_evals,
+                             el_t=el_t, tol=disp_dig))
+
+        if trace:
+            hist['f'] += [f]
+            hist['norm_g'] += [norm_g]
+            hist['n_evals'] += [n_evals]
+            hist['elaps_t'] += [el_t]
+
+        if norm_g < tol:
+            status = 0
+            break
+
+        beta = g.dot(g) / d.dot(g - g_old)
+
+        d = -g + beta * d
+
+        g_old = g
+
+    if trace:
+        hist['f'] = np.array(hist['f'])
+        hist['norm_g'] = np.array(hist['norm_g'])
+        hist['n_evals'] = np.array(hist['n_evals'])
+        hist['elaps_t'] = np.array(hist['elaps_t'])
+
+        return (
+            x0,
+            f,
+            status,
+            hist
+        )
+
+    else:
+        return (
+            x0,
+            f,
+            status
+        )
 
 
 def lbfgs_compute_dir(sy_hist, g):
@@ -298,9 +376,10 @@ def hfn(func, x0, hess_vec, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9,
         Возвращает:
             hv: np.ndarray
                 Произведение гессиана на вектор v, вектор размера n
-            tol: float, опционально
-                Точность по l_∞-норме градиента:
-                norm(nabla f(x_k), infty) < tol
+
+    tol: float, опционально
+        Точность по l_∞-норме градиента:
+        norm(nabla f(x_k), infty) < tol
 
     max_iter: int, опционально
         Максимальное число итераций метода
@@ -345,3 +424,81 @@ def hfn(func, x0, hess_vec, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9,
                 Реальное время, пройденное с начала оптимизации
 
         """
+    func_wrapper = FuncWrapper(func)
+
+    disp_dig = int(np.fabs(np.log10(tol))) + 1
+
+    f, g = func(x0)
+
+    n_evals = 1
+    status = 1
+    norm_g = np.linalg.norm(g, ord=np.inf)
+    hist = {
+        'f': [f],
+        'norm_g': [norm_g],
+        'n_evals': [n_evals],
+        'elaps_t': [0]
+    }
+    start = time.time()
+
+    for k in range(max_iter):
+        eps = np.minimum(0.5, np.sqrt(norm_g)) * norm_g
+
+        d, _, h = cg(lambda v: hess_vec(x0, v), -g,
+                     np.zeros(g.size), eps, trace=True)
+        n_evals += h['norm_r'].size
+
+        while d.dot(g) >= 0:
+            eps /= 2
+            d, _, h = cg(lambda v: hess_vec(x0, v), -g, d, eps, trace=True)[0]
+            n_evals += h['norm_r'].size
+
+        alpha, fc = line_search_wolfe2(lambda x: func_wrapper(x)[0],
+                                       lambda x: func_wrapper(x)[1],
+                                       x0, d, g, c1=c2, c2=c2)[:2]
+
+        x0 += alpha * d
+
+        f, g = func(x0)
+        n_evals += 1 + fc
+
+        norm_g = np.linalg.norm(g, ord=np.inf)
+
+        el_t = time.time() - start
+
+        if disp:
+            tpl = "iter. #{iter}: ||g||={norm: .{tol}f},\t" +\
+                  "alpha={al: .{tol}f},\tn_evals={n_evals},\t" +\
+                  "elaps_t={el_t: .{tol}f}"
+            print(tpl.format(iter=k, norm=norm_g, al=alpha, n_evals=n_evals,
+                             el_t=el_t, tol=disp_dig))
+
+        if trace:
+            hist['f'] += [f]
+            hist['norm_g'] += [norm_g]
+            hist['n_evals'] += [n_evals]
+            hist['elaps_t'] += [el_t]
+
+        if norm_g < tol:
+            status = 0
+            break
+
+    if trace:
+        hist['f'] = np.array(hist['f'])
+        hist['norm_g'] = np.array(hist['norm_g'])
+        hist['n_evals'] = np.array(hist['n_evals'])
+        hist['elaps_t'] = np.array(hist['elaps_t'])
+
+        return (
+            x0,
+            f,
+            status,
+            hist
+        )
+
+    else:
+        return (
+            x0,
+            f,
+            status
+        )

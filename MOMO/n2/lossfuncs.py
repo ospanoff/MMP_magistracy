@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.sparse import csr_matrix
 
 
 def logistic(w, X, y, reg_coef):
@@ -29,21 +28,13 @@ def logistic(w, X, y, reg_coef):
         Градиент функции в точке w, вектор размера d
 
     """
-    w = w[:, np.newaxis]
-    if type(X) == np.ndarray:
-        A = -y[:, np.newaxis] * X
+    x = -y * X.dot(w)
 
-    else:
-        A = X.multiply(csr_matrix(-y).T)
-
-    Aw = A.dot(w)
-
-    s = 1 / (1 + np.exp(-Aw))
-    f = np.logaddexp(0, Aw).mean() + reg_coef * np.dot(w.T, w) / 2
+    s = 1 / (1 + np.exp(-x))
 
     return (
-        f[0, 0],
-        A.T.dot(s) / y.size + reg_coef * w,
+        np.logaddexp(0, x).mean() + reg_coef * w.dot(w) / 2,
+        X.T.dot(-y * s) / y.size + reg_coef * w,
     )
 
 
@@ -75,18 +66,9 @@ def logistic_hess_vec(w, v, X, y, reg_coef):
         Вектор hessian(f(w))v
 
     """
-    w = w[:, np.newaxis]
+    x = -y * X.dot(w)
 
-    if type(X) == np.ndarray:
-        A = -y[:, np.newaxis] * X
-
-    else:
-        A = X.multiply(csr_matrix(-y).T)
-
-    f = 1 / (1 + np.exp(A.dot(w)))
+    f = 1 / (1 + np.exp(x))
     s = f * (1 - f)
 
-    v = v[:, np.newaxis]
-    ret = A.dot(v)
-
-    return (A.T.dot(s * ret) / y.size + reg_coef * v).ravel()
+    return X.T.dot(s * X.dot(v)) / y.size + reg_coef * v
