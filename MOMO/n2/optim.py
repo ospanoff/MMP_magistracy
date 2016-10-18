@@ -1,6 +1,7 @@
 import numpy as np
 from special import FuncWrapper
 from scipy.optimize.linesearch import line_search_wolfe2
+from collections import deque
 import time
 
 
@@ -54,6 +55,7 @@ def cg(matvec, b, x0, tol=1e-4, max_iter=None, disp=False, trace=False):
                 Норма невязки ||Ax_k − b||_∞ по итерациям
 
     """
+    x0 = x0.astype(np.float)
     disp_dig = int(np.fabs(np.log10(tol))) + 1
     status = 1
 
@@ -175,6 +177,7 @@ def ncg(func, x0, tol=1e-4, max_iter=500, c1=1e-4, c2=0.1, disp=False,
                 Реальное время, пройденное с начала оптимизации
 
     """
+    x0 = x0.astype(np.float)
     func_wrapper = FuncWrapper(func)
 
     disp_dig = int(np.fabs(np.log10(tol))) + 1
@@ -270,6 +273,29 @@ def lbfgs_compute_dir(sy_hist, g):
         Направление спуска метода L-BFGS, вектор размера n
 
     """
+    g = g.astype(np.float)
+    m = len(sy_hist)
+    if m == 0:
+        return -g
+
+    d = -g
+
+    alpha = []
+    for i in range(-1, -m - 1, -1):
+        s, y = sy_hist[i]
+        a = s.dot(d) / s.dot(y)
+        d -= a * y
+        alpha += [a]
+
+    s, y = sy_hist[-1]
+    d *= s.dot(y) / y.dot(y)
+
+    for i in range(-m, 0):
+        s, y = sy_hist[i]
+        beta = y.dot(d) / s.dot(y)
+        d += (alpha[-(i + m + 1)] - beta) * s
+
+    return d
 
 
 def lbfgs(func, x0, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9, m=10, disp=False,
@@ -342,6 +368,81 @@ def lbfgs(func, x0, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9, m=10, disp=False,
                 Реальное время, пройденное с начала оптимизации
 
     """
+    x0 = x0.astype(np.float)
+    func_wrapper = FuncWrapper(func)
+
+    disp_dig = int(np.fabs(np.log10(tol))) + 1
+
+    f, g = func(x0)
+
+    n_evals = 1
+    status = 1
+    norm_g = np.linalg.norm(g, ord=np.inf)
+    hist = {
+        'f': [f],
+        'norm_g': [norm_g],
+        'n_evals': [n_evals],
+        'elaps_t': [0]
+    }
+
+    sy_hist = deque(maxlen=m)
+    start = time.time()
+
+    for k in range(max_iter):
+        d = lbfgs_compute_dir(sy_hist, g)
+        alpha, fc = line_search_wolfe2(lambda x: func_wrapper(x)[0],
+                                       lambda x: func_wrapper(x)[1],
+                                       x0, d, g, c1=c2, c2=c2)[:2]
+
+        x_old = x0
+        x0 = x_old + alpha * d
+
+        g_old = g
+        f, g = func(x0)
+        n_evals += 1 + fc
+
+        sy_hist.append((x0 - x_old, g - g_old))
+
+        norm_g = np.linalg.norm(g, ord=np.inf)
+
+        el_t = time.time() - start
+
+        if disp:
+            tpl = "iter. #{iter}: ||g||={norm: .{tol}f},\t" +\
+                  "alpha={al: .{tol}f},\tn_evals={n_evals},\t" +\
+                  "elaps_t={el_t: .{tol}f}"
+            print(tpl.format(iter=k, norm=norm_g, al=alpha, n_evals=n_evals,
+                             el_t=el_t, tol=disp_dig))
+
+        if trace:
+            hist['f'] += [f]
+            hist['norm_g'] += [norm_g]
+            hist['n_evals'] += [n_evals]
+            hist['elaps_t'] += [el_t]
+
+        if norm_g < tol:
+            status = 0
+            break
+
+    if trace:
+        hist['f'] = np.array(hist['f'])
+        hist['norm_g'] = np.array(hist['norm_g'])
+        hist['n_evals'] = np.array(hist['n_evals'])
+        hist['elaps_t'] = np.array(hist['elaps_t'])
+
+        return (
+            x0,
+            f,
+            status,
+            hist
+        )
+
+    else:
+        return (
+            x0,
+            f,
+            status
+        )
 
 
 def hfn(func, x0, hess_vec, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9,
@@ -423,7 +524,8 @@ def hfn(func, x0, hess_vec, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9,
             elaps_t: np.ndarray
                 Реальное время, пройденное с начала оптимизации
 
-        """
+    """
+    x0 = x0.astype(np.float)
     func_wrapper = FuncWrapper(func)
 
     disp_dig = int(np.fabs(np.log10(tol))) + 1
