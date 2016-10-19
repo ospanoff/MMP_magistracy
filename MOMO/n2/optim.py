@@ -196,14 +196,14 @@ def ncg(func, x0, tol=1e-4, max_iter=500, c1=1e-4, c2=0.1, disp=False,
     start = time.time()
 
     for k in range(max_iter):
-        alpha, fc = line_search_wolfe2(lambda x: func_wrapper(x)[0],
-                                       lambda x: func_wrapper(x)[1],
-                                       x0, d, g_old, c1=c2, c2=c2)[:2]
+        alpha = line_search_wolfe2(lambda x: func_wrapper(x)[0],
+                                   lambda x: func_wrapper(x)[1],
+                                   x0, d, g_old, c1=c1, c2=c2)[0]
 
         x0 += alpha * d
 
         f, g = func(x0)
-        n_evals += 1 + fc
+        n_evals += 1 + func_wrapper.get_k()
 
         norm_g = np.linalg.norm(g, ord=np.inf)
 
@@ -390,16 +390,16 @@ def lbfgs(func, x0, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9, m=10, disp=False,
 
     for k in range(max_iter):
         d = lbfgs_compute_dir(sy_hist, g)
-        alpha, fc = line_search_wolfe2(lambda x: func_wrapper(x)[0],
-                                       lambda x: func_wrapper(x)[1],
-                                       x0, d, g, c1=c2, c2=c2)[:2]
+        alpha = line_search_wolfe2(lambda x: func_wrapper(x)[0],
+                                   lambda x: func_wrapper(x)[1],
+                                   x0, d, g, c1=c1, c2=c2)[0]
 
         x_old = x0
         x0 = x_old + alpha * d
 
         g_old = g
         f, g = func(x0)
-        n_evals += 1 + fc
+        n_evals += 1 + func_wrapper.get_k()
 
         sy_hist.append((x0 - x_old, g - g_old))
 
@@ -555,14 +555,14 @@ def hfn(func, x0, hess_vec, tol=1e-4, max_iter=500, c1=1e-4, c2=0.9,
             d, _, h = cg(lambda v: hess_vec(x0, v), -g, d, eps, trace=True)[0]
             n_evals += h['norm_r'].size
 
-        alpha, fc = line_search_wolfe2(lambda x: func_wrapper(x)[0],
-                                       lambda x: func_wrapper(x)[1],
-                                       x0, d, g, c1=c2, c2=c2)[:2]
+        alpha = line_search_wolfe2(lambda x: func_wrapper(x)[0],
+                                   lambda x: func_wrapper(x)[1],
+                                   x0, d, g, c1=c1, c2=c2)[0]
 
         x0 += alpha * d
 
         f, g = func(x0)
-        n_evals += 1 + fc
+        n_evals += 1 + func_wrapper.get_k()
 
         norm_g = np.linalg.norm(g, ord=np.inf)
 

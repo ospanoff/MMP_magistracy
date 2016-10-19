@@ -119,6 +119,7 @@ def gen_symm_matr(kappa, n):
 
 class FuncWrapper:
     def __init__(self, func):
+        self.k = 0
         self.func = func
         self.x_last = None
         self.out_last = None
@@ -126,5 +127,13 @@ class FuncWrapper:
     def __call__(self, x):
         if self.x_last is None or not np.all(self.x_last == x):
             self.out_last = self.func(x)
+            self.k += 1
+
             self.x_last = np.copy(x)
+
         return self.out_last
+
+    def get_k(self):
+        k = self.k
+        self.k = 0
+        return k
