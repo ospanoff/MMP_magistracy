@@ -1,0 +1,179 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage[pdftex]{graphicx, color}
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage[left=2cm,right=2cm,top=1.5cm,bottom=2cm]{geometry}
+\usepackage{indentfirst}
+
+\usepackage{setspace}
+\onehalfspacing
+\graphicspath{{pics/}}
+
+\begin{document}
+
+    \thispagestyle{empty}
+
+    \begin{singlespace}
+    \begin{titlepage}
+        \begin{center}
+            \includegraphics[height = 3cm]{msu.png}
+
+            {\scshape Московский государственный университет имени М.~В.~Ломоносова}\\
+            Факультет вычислительной математики и кибернетики\\
+            Кафедра математических методов прогнозирования\\
+            \centerline{\hfill\hrulefill\hrulefill\hrulefill\hrulefill\hfill}
+
+            \vfill
+
+            {\LARGE Отчет к третьему практическому заданию по МОМО: \\ Выпуклая негладкая, условная и структурная оптимизация}
+
+            \vspace{1cm}
+
+        \end{center}
+
+        \vfill
+
+        \begin{flushright}
+            Студент 517 группы:\\
+                \textit{Оспанов А.М.}
+
+            \vspace{5mm}
+
+        \end{flushright}
+
+        \vfill
+
+        \begin{center}
+            Москва, 2016
+        \end{center}
+    \end{titlepage}
+    \end{singlespace}
+
+    \newpage
+
+    \def \picwidth {17cm}
+    \def \picheight {7.5cm}
+
+    \section{Введение}
+
+    \section{$\phi_\tau(w^+, w^-)$ и вывод $(p_k^+, p_k^-)$}
+
+    Рассмотрим задачу оптимизации следующего вида:
+
+    $$
+    \begin{cases}
+        f(x) \to min, & x \in \mathbb{D} \subseteq \mathbb{R}^n\\
+        g_i(x) \leq 0, & i = 1, ..., m\\
+    \end{cases}
+    $$
+
+    Тогда вспомогательная фунцкия для метода барьеров будет иметь следующий вид:
+
+    $$\phi_\tau(x) = \tau f(x) - \displaystyle\sum_{i=1}^{m}log(-g_i(x))$$
+
+    Учитывая общий вид, напишем вспомогательную ф-ю для задачи (5):
+
+    $\phi_\tau(w^+, w^-) = \dfrac{\tau}{2n}||X(w^+ - w^-) - y||_2^2 + \tau\lambda\vec{1}(w^+ + w^-) - \displaystyle\sum_{i=1}^{m}(log(w_i^+) + log(w_i^-))$
+
+    \medskip
+
+    Далее, чтобы выписать систему линейных уравнений, задающую ньютоновоское направление $(p_k^+, p_k^-)$, нужно посчитать градиенты и гессианы:
+
+    $\nabla_{w^+} \phi_\tau = \dfrac{\tau}{n} X^T(X(w^+ - w^-) - y) + \tau\lambda\vec{1} - \widetilde{w}^+$, где $\widetilde{w}^+ = \Big(\dfrac{1}{w_1^+}, ..., \dfrac{1}{w_d^+}\Big)$
+
+    $\nabla_{w^-} \phi_\tau = -\dfrac{\tau}{n} X^T(X(w^+ - w^-) - y) + \tau\lambda\vec{1} - \widetilde{w}^-$, где $\widetilde{w}^- = \Big(\dfrac{1}{w_1^-}, ..., \dfrac{1}{w_d^-}\Big)$
+
+    $\nabla_{w^+}^2 \phi_\tau = \dfrac{\tau}{n} X^TX + diag(\widetilde{w}_s^+)$, где $[\widetilde{w}_s^+]_i = \Big(\dfrac{1}{w_i^+}\Big)^2, \ i = 1, ..., d$
+
+    $\nabla_{w^-}^2 \phi_\tau = \dfrac{\tau}{n} X^TX + diag(\widetilde{w}_s^-)$, где $[\widetilde{w}_s^-]_i = \Big(\dfrac{1}{w_i^-}\Big)^2, \ i = 1, ..., d$
+
+    $\nabla_{w^-w^+}^2 \phi_\tau = -\dfrac{\tau}{n} X^TX$
+
+    \medskip
+
+    Обозначим эти функции следующим образом:
+
+    $A = \nabla_{w^-w^+}^2 \phi_\tau$
+
+    $D_+ = diag(\widetilde{w}_s^+)$
+
+    $D_- = diag(\widetilde{w}_s^-)$
+
+    $b^+ = -\nabla_{w^+} \phi_\tau$
+
+    $b^- = -\nabla_{w^-} \phi_\tau$
+
+    Тогда:
+
+    $\nabla_{w^+}^2 \phi_\tau = -A + D_+$
+    $\nabla_{w^-}^2 \phi_\tau = -A + D_-$
+
+    и система уравнений в этих обозначениях выглядит следующим образом:
+
+    $$
+    \begin{bmatrix}
+        -A + D_+ & A \\[0.3em]
+        A & -A + D_- \\[0.3em]
+    \end{bmatrix}
+    \begin{bmatrix}
+        p_k^+ \\[0.3em]
+        p_k^- \\[0.3em]
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        b^+ \\[0.3em]
+        b^- \\[0.3em]
+    \end{bmatrix}
+    $$
+
+    Просуммировав два уравнения, получим:
+
+    $p_k^+ = D_+^{-1}(b^+ + b^- - D_-p^-)$
+
+    Далее подставив полученное выражение во 2е уравнение, получим:
+
+    $(AD_+^{-1} + A - D_-)p_k^- = AD_+^{-1}(b^+ + b^-) - b^-$
+
+    Введем следующие обозначения:
+
+    $\dfrac{a}{b} = \Big(\dfrac{a_1}{b_1}, ..., \dfrac{a_d}{b_d}\Big)$
+
+    $a^2 = \Big(a_1^2, ..., a_d^2\Big)$
+
+    Если подставить матрицы в изначальном виде, то получим следующие выражения:
+
+    $p_k^+ = w^+ + \Big(\dfrac{1}{w^-} - 2\tau\lambda\vec{1}\Big) (w^+)^2 - \Big(\dfrac{(w^+)^2}{(w^-)^2}\Big)p_k^-$
+
+    $\Big[-\dfrac{\tau}{n}X^T X diag\Big( \Big(\dfrac{w^+}{w^-}\Big)^2 + \vec{1} \Big) - diag\Big( \dfrac{1}{(w^-)^2} \Big) \Big]p_k^- =$
+
+    $= -\dfrac{\tau}{n} X^T \Big[ X\Big( 2w^+ - w^- + \Big(\dfrac{1}{w^-} - 2\tau\lambda\vec{1}\Big) (w^+)^2 \Big) -y \Big] + \tau\lambda\vec{1} - \dfrac{1}{w^-}$
+
+    \medskip
+    \textbf{Оценка $\alpha$}
+
+    $w_k^+ + \alpha * p_k^+ \geq 0$
+
+    $w_k^- + \alpha * p_k^- \geq 0$
+
+    Учитывая эти неравенства, получаем:
+
+    $\alpha \leq -\dfrac{w_i^+}{p_i^+}, i \in I^+$, где $I^+ = \{i | p_i^+ < 0\}$
+
+    $\alpha \leq -\dfrac{w_i^-}{p_i^-}, i \in I^-$, где $I^- = \{i | p_i^- < 0\}$
+
+    Следовательно:
+
+    $\alpha_{max} = \min \{\min\limits_{i \in I^+} (-\dfrac{w_i^+}{p_i^+}), \min\limits_{i \in I^-} (-\dfrac{w_i^-}{p_i^-})\}$
+
+    Если $I^+ = I^- = \varnothing$, то $\alpha_{max} = 1$
+
+    \medskip
+
+    Начальную точку $(w_0^+, w_0^-)$ берем такую, чтобы она лежала далеко от границы и близко к центральному пути. Для нашей задачи подойдет точка $(w_0^+, w_0^-) > 0$
+
+    \section{2}
+
+    \section{Заключение}
+
+\end{document}
