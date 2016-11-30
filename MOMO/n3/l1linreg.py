@@ -13,10 +13,10 @@ def phi_main(w, X, y, reg_coef):
 def duality_gap(w, X, y, reg_coef):
     n = y.size
     r = X.dot(w) - y
-    mu = min(1, (reg_coef * n) / np.linalg.norm(X.T.dot(r), np.inf))
-    mu *= (1 / n) * r
-    eta = r.dot(r) / (2 * n) + reg_coef * np.linalg.norm(w, 1)
-    eta += (n / 2) * mu.dot(mu) + y.dot(mu)
+    mu = min(1.0, (reg_coef * n) / np.linalg.norm(X.T.dot(r), np.inf))
+    mu *= (1.0 / n) * r
+    eta = r.dot(r) / (2.0 * n) + reg_coef * np.linalg.norm(w, 1)
+    eta += (n / 2.0) * mu.dot(mu) + y.dot(mu)
     return eta
 
 
@@ -128,7 +128,7 @@ def barrier(X, y, reg_coef, w0_plus, w0_minus, tol=1e-5, tol_inner=1e-8,
 
     def phi(w_plus, w_minus, tau):  # phi_t
         phi_ = np.sum((X.dot(w_plus - w_minus) - y) ** 2)
-        phi_ = tau / (2 * n) * phi_
+        phi_ = tau / (2.0 * n) * phi_
         phi_ = phi_ + tau * reg_coef * np.sum(w_plus + w_minus)
         phi_ = phi_ - np.sum(np.log(w_plus) + np.log(w_minus))
 
@@ -138,10 +138,10 @@ def barrier(X, y, reg_coef, w0_plus, w0_minus, tol=1e-5, tol_inner=1e-8,
         tmp = tau / n * X.T.dot(X.dot((w_plus - w_minus)) - y)
 
         nab_phi_p = tmp
-        nab_phi_p += tau * reg_coef - 1 / w_plus
+        nab_phi_p += tau * reg_coef - 1.0 / w_plus
 
         nab_phi_n = -tmp
-        nab_phi_n += tau * reg_coef - 1 / w_minus
+        nab_phi_n += tau * reg_coef - 1.0 / w_minus
 
         return nab_phi_p, nab_phi_n
 
@@ -151,7 +151,11 @@ def barrier(X, y, reg_coef, w0_plus, w0_minus, tol=1e-5, tol_inner=1e-8,
 
     status = 1
     disp_dig = int(np.fabs(np.log10(tol))) + 1
-    hist = {'elaps_t': [], 'phi': [], 'dual_gap': []}
+    hist = {
+        'elaps_t': [0],
+        'phi': [phi_main(w_plus - w_minus, X, y, reg_coef)],
+        'dual_gap': [duality_gap(w_plus - w_minus, X, y, reg_coef)]
+    }
 
     start_ = time.time()
 
@@ -160,16 +164,16 @@ def barrier(X, y, reg_coef, w0_plus, w0_minus, tol=1e-5, tol_inner=1e-8,
         phi_old = phi(w_plus, w_minus, tau)
         for k_inn in range(max_iter_inner):
             A = -tau / n * X.T.dot(X * ((w_plus / w_minus) ** 2 + 1))
-            A = A - np.diag(1 / (w_minus ** 2))
+            A = A - np.diag(1.0 / (w_minus ** 2))
 
-            b = (1 / w_minus - 2 * tau * reg_coef) * (w_plus ** 2)
-            b = 2 * w_plus - w_minus + b
+            b = (1.0 / w_minus - 2.0 * tau * reg_coef) * (w_plus ** 2)
+            b = 2.0 * w_plus - w_minus + b
             b = X.dot(b) - y
-            b = - tau / n * X.T.dot(b) + tau * reg_coef - 1 / w_minus
+            b = - tau / n * X.T.dot(b) + tau * reg_coef - 1.0 / w_minus
 
             p_minus = np.linalg.solve(A, b)
 
-            p_plus = (1 / w_minus - 2 * tau * reg_coef) * (w_plus ** 2)
+            p_plus = (1.0 / w_minus - 2.0 * tau * reg_coef) * (w_plus ** 2)
             p_plus = w_plus + p_plus
             p_plus -= (w_plus ** 2) / (w_minus ** 2) * p_minus
 
@@ -181,13 +185,13 @@ def barrier(X, y, reg_coef, w0_plus, w0_minus, tol=1e-5, tol_inner=1e-8,
             else:
                 alpha_max = np.min(-w[ind] / p[ind])
 
-            alpha = np.minimum(1, 0.95 * alpha_max)
+            alpha = np.minimum(1.0, 0.95 * alpha_max)
 
             # Armijo
             while phi(w_plus + alpha * p_plus,
                       w_minus + alpha * p_minus, tau) > phi_old + \
                     alpha * c1 * (np_p.dot(p_plus) + np_n.dot(p_minus)):
-                alpha /= 2
+                alpha /= 2.0
 
             w_plus += alpha * p_plus
             w_minus += alpha * p_minus
@@ -296,20 +300,25 @@ def subgrad(X, y, reg_coef, w0, tol=1e-2, max_iter=1000, alpha=1,
 
     status = 1
     disp_dig = int(np.fabs(np.log10(tol))) + 1
-    hist = {'elaps_t': [], 'phi': [], 'dual_gap': []}
+    # hist = {'elaps_t': [], 'phi': [], 'dual_gap': []}
+    hist = {
+        'elaps_t': [0],
+        'phi': [phi_main(w_hat, X, y, reg_coef)],
+        'dual_gap': [duality_gap(w_hat, X, y, reg_coef)]
+    }
 
     start_ = time.time()
 
-    subg = np.empty(w0.shape)
+    subg = np.empty(w0.shape, dtype=float)
     min_phi = phi_main(w0, X, y, reg_coef)
     for k in range(max_iter):
         subg[w0 >= 0] = 1
         subg[w0 < 0] = -1
-        g = 1 / n * X.T.dot(X.dot(w0) - y) + reg_coef * subg
+        g = 1.0 / n * X.T.dot(X.dot(w0) - y) + reg_coef * subg
 
-        w0 -= alpha / np.sqrt(k + 1) * g / np.linalg.norm(g, ord=2)
+        w0 -= (alpha / np.sqrt(k + 1)) * (g / np.linalg.norm(g, ord=2))
         phi = phi_main(w0, X, y, reg_coef)
-        if phi < min_phi:
+        if phi <= min_phi:
             w_hat = w0.copy()
             min_phi = phi
 
@@ -405,22 +414,26 @@ def prox_grad(X, y, reg_coef, w0, tol=1e-5, max_iter=1000, L0=1,
     L = L0
     n, d = X.shape
     w0 = w0.astype(np.float)
+    w = w0.copy()
 
     status = 1
     disp_dig = int(np.fabs(np.log10(tol))) + 1
     ls_iters = 0
-    hist = {'elaps_t': [], 'phi': [], 'dual_gap': [], 'ls_iters': []}
+    # hist = {'elaps_t': [], 'phi': [], 'dual_gap': [], 'ls_iters': []}
+    hist = {
+        'elaps_t': [0],
+        'phi': [phi_main(w0, X, y, reg_coef)],
+        'dual_gap': [duality_gap(w0, X, y, reg_coef)],
+        'ls_iters': [0]
+    }
 
     start_ = time.time()
-
-    phi = phi_main(w0, X, y, reg_coef)
     for k in range(max_iter):
-        nab_phi = 1 / n * X.T.dot(X.dot(w0) - y)
+        f = 1.0 / n * ((X.dot(w0) - y) ** 2).sum()
+        nab_phi = 1.0 / n * X.T.dot(X.dot(w0) - y)
         while 7:
             ls_iters += 1
             delta = nab_phi - L * w0
-
-            w = w0.copy()
 
             ind = delta > reg_coef
             w[ind] = (-delta[ind] + reg_coef) / L
@@ -430,17 +443,17 @@ def prox_grad(X, y, reg_coef, w0, tol=1e-5, max_iter=1000, L0=1,
 
             w[np.abs(delta) <= reg_coef] = 0
 
-            m = nab_phi.dot(w - w0) + L / 2 * ((w - w0) ** 2).sum()
-            m += phi + reg_coef * np.linalg.norm(w, ord=1)
+            m = nab_phi.dot(w - w0) + L / 2.0 * ((w - w0) ** 2).sum()
+            m += f + reg_coef * np.linalg.norm(w, ord=1)
 
             if phi_main(w, X, y, reg_coef) > m:
-                L /= 2
+                L *= 2.0
             else:
                 break
 
         w0 = w.copy()
         phi = phi_main(w0, X, y, reg_coef)
-        L = np.maximum(L0, L / 2)
+        L = np.maximum(L0, L / 2.0)
 
         dg = duality_gap(w0, X, y, reg_coef)
         el_t = time.time() - start_
