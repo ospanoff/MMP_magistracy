@@ -1,0 +1,232 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage[pdftex]{graphicx, color}
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage[left=2cm,right=2cm,top=1.5cm,bottom=2cm]{geometry}
+\usepackage{indentfirst}
+
+% Plot package
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.14}
+
+% Psedudocode package
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\algrenewcommand\textproc{}% Used to be \textsc
+\floatname{algorithm}{Алгоритм}
+
+\usepackage{setspace}
+\onehalfspacing
+\graphicspath{{pics/}}
+
+\begin{document}
+    \setlength{\abovedisplayskip}{3pt}
+    \setlength{\belowdisplayskip}{3pt}
+
+    \thispagestyle{empty}
+
+    \begin{singlespace}
+    \begin{titlepage}
+        \begin{center}
+            \includegraphics[height = 3cm]{msu.png}
+
+            {\scshape Московский государственный университет имени М.~В.~Ломоносова}\\
+            Факультет вычислительной математики и кибернетики\\
+            Кафедра математических методов прогнозирования\\
+            \centerline{\hfill\hrulefill\hrulefill\hrulefill\hrulefill\hfill}
+
+            \vfill
+
+            {\LARGE Отчет по бонусному заданию по МОМО: \\ Проекция на симплекс}
+
+            \vspace{1cm}
+
+        \end{center}
+
+        \vfill
+
+        \begin{flushright}
+            Студент 517 группы:\\
+                \textit{Оспанов А.М.}
+
+            \vspace{5mm}
+
+        \end{flushright}
+
+        \vfill
+
+        \begin{center}
+            Москва, 2016
+        \end{center}
+    \end{titlepage}
+    \end{singlespace}
+
+    \newpage
+
+
+    \section{Описание задания}
+    В данном задании предлагается придумать эффективный алгоритм вычисления евклидовой проекции $\pi_{\Delta_n}(v)$
+    заданной точки $v \in \mathbb{R}^n$ на симплекс:
+    $$\pi_{\Delta_n}(v) = \text{arg}\min\limits_{x \in \Delta_n}||x - v||_2,$$
+    где
+    $$\Delta_n = \Big\{ x \in \mathbb{R}_+^n | \displaystyle\sum_{i=1}^n x_i = 1 \Big\}$$
+
+    \section{Решение}
+
+    Т.к. норма всегда положительна, то $\text{arg}\min\limits_{x \in \Delta_n}||x - v||_2 = \text{arg}\min\limits_{x \in \Delta_n}\frac{1}{2}||x - v||_2^2$.
+    Таким образом можно решать задачу с квадратом нормы для упрощения выкладок.
+
+    Выпишем лагранжиан:
+    $$L(x; \lambda, \mu) = \dfrac{1}{2} ||x - v||_2^2 - \lambda^Tx + \mu(\displaystyle\sum_{i=1}^n x_i - 1)$$
+
+    и систему ККТ:
+    $$
+    \begin{cases}
+        \nabla L(x; \lambda, \mu) = 0\\
+        x_i \lambda_i = 0, & i = 1, \dots, n\\
+        \displaystyle\sum_{i=1}^n x_i = 1 \\
+        \lambda \geq 0 \\
+        x_i \geq 0 & i = 1, \dots, n\\
+    \end{cases}
+    $$
+
+    Так как задача выпукла и ограничения линейные, решив эту систему, получим точку минимума.
+
+    Посчитаем градиент лагранжиана и выразим $\lambda$:
+    $$\nabla L(x; \lambda, \mu) = x - v - \lambda + \mu\vec{1} = 0$$
+    $$\lambda = x - v + \mu\vec{1}$$
+
+    Преобразуем систему ККТ подставив $\lambda$:
+    $$
+    \begin{cases}
+        x_i(x_i - v_i + \mu) = 0\\
+        x_i \geq 0\\
+        \displaystyle\sum_{i=1}^n x_i = 1 \\
+        x_i - v_i + \mu \geq 0\\
+    \end{cases}
+    $$
+    где $i = 1, \dots, n$
+
+    Теперь введем следующие множества:
+    $$I_+(\mu) = \{i | x_i - v_i + \mu > 0\}$$
+    $$I_0(\mu) = \{i | x_i - v_i + \mu = 0\}$$
+    тогда:
+    \[x_i =
+    \begin{cases}
+        0, & i \in I_+(\mu) \\
+        v_i - \mu, & i \in I_0(\mu)\\
+    \end{cases} \label{eq:x} \tag{*}
+    \]
+
+    Учитвая это, выразив $\displaystyle\sum_{i=1}^n x_i$:
+    $$\displaystyle\sum_{i=1}^n x_i = \displaystyle\sum_{i \in I_+(\mu)} 0 + \displaystyle\sum_{i \in I_0(\mu)} (v_i - \mu) = 1$$
+    получим:
+    $$\displaystyle\sum_{i=1}^n (v_i - \mu)_+ = 1, \text{где } x_+ =
+    \begin{cases}
+        x, & x \geq 0 \\
+        0, & x < 0 \\
+    \end{cases}
+    $$
+    Обозначим $f(\mu) = \displaystyle\sum_{i=1}^n (v_i - \mu)_+ = \displaystyle\sum_{i=1}^n max\{v_i - \mu, 0\}$.
+
+    Распишем свойства этой функции:
+    \begin{itemize}
+        \item непрерывна
+        \item строго убывает ($\mu_1 < \mu_2 \Rightarrow f(\mu_1) > f(\mu_2)$)
+        \item выпукла
+    \end{itemize}
+
+    Докажем эти свойства:
+
+    1) Непрерывность: очевидна (непрерывность линейной ф-ции и $max$)
+
+    2) Строгое убывание: Расположим $v_i$ в порядке возрастания ($v_1 \leq v_2 \leq \dots \leq v_n$). Тогда видно, что при возрастании $\mu$, ф-я убывает, причем строго.
+
+    3) Выпуклость: $v_i - \mu$ -- линейная ф-я и следовательно выпукла. $max$ -- выуклая ф-я. $\Rightarrow$ Ф-я $f(\mu)$, как суперпозиция выпуклых ф-ций, -- выпукла.
+
+    Далее будем считать, что $v_i$ расположены в порядке возрастания ($v_1 \leq v_2 \leq \dots \leq v_n$).
+
+    Нарисуем график функции:
+
+    \begin{center}
+    \begin{tikzpicture}[scale=1.3]
+    \begin{axis}[
+        axis y line=middle,
+        axis x line=middle,
+        xlabel=$\mu$,
+        ylabel=$f(\mu)$,
+        xtick={-2, -1, 0, 1, 2, 3},
+        xticklabels={$v_1$, $v_2$, $v_3$, $\dots$, $v_{n-1}$, $v_n$},
+        ytick={0, 0.15, 0.35, 0.6, 1, 1.5},
+        yticklabels={0, , , $\displaystyle\sum_{i=1}^n v_i [v_i > 0]$, ,},
+        every axis x label/.style={
+            at={(ticklabel* cs:1.05)},
+            anchor=west,
+        },
+        every axis y label/.style={
+            at={(ticklabel* cs:1.05)},
+            anchor=south,
+        },
+        xmin=-3, xmax=4.5,
+        ymin=-0.5, ymax=1.6
+    ]
+    \addplot coordinates {
+    	(-2, 1.5) (-1, 1) (0, 0.6) (1, 0.35) (2, 0.15) (3, 0) (3.5, 0)
+    };
+    \addplot[mark=none, blue] coordinates {
+    	(-3, 2) (-2, 1.5)
+    };
+    \addplot[mark=none, blue] coordinates {
+    	(3, 0) (4, 0)
+    };
+    \end{axis}
+    \end{tikzpicture}
+    \end{center}
+
+    Пусть $v_i \leq \mu \leq v_{i+1}$. Тогда $f(\mu) = \displaystyle\sum_{j=i+1}^n (v_j - \mu) = \displaystyle\sum_{j=i+1}^n v_i - (n - i)\mu = 1$
+
+    Следовательно $\mu = \dfrac{\sum_{j=i+1}^n v_i - 1}{n - i}$
+
+    Чтобы вычислить $x$, перепишем \eqref{eq:x}, раскрыв множества:
+    \[x_i =
+    \begin{cases}
+        0, & \mu > v_i \\
+        v_i - \mu, & \mu \leq v_i \\
+    \end{cases}
+    \]
+
+
+
+    \begin{algorithm}
+    \caption{Проекция на симплекс}
+    \begin{algorithmic}[1]
+
+    \Function{proj}{$v_0$}
+        % \State Given: $v_0$
+        \State $v = sort(v_0)$
+        \For{$i = 1$ to $n - 1$}
+            \State $\mu = \dfrac{\sum_{j=i+1}^n v_i - 1}{n - i}$
+            \If {$\mu \in [v_i, v_{i+1}]$}
+                \State $\mu_0 = \mu$
+                \State \textbf{break}
+            \EndIf
+        \EndFor
+        \For{$i = 1$ to $n - 1$}
+            \If {$\mu_0 > v_{0,i}$}
+                \State $x_i = 0$
+            \Else
+                \State $x_i = v_{0,i} - \mu_0$
+            \EndIf
+        \EndFor
+        \State \Return $x$
+    \EndFunction
+
+    \end{algorithmic}
+    \end{algorithm}
+
+    При некоторой оптимизации (например вместо вычисления суммы в строчке 4, вычислить полную сумму вначале, а в 4й строке отнимать $v_i$),
+    то алгоритм работает за $O(n + n \log n)$ времени ($O(n \log n)$ времени тратится на сортировку), что то же самое, что и $O(n \log n)$.
+
+
+\end{document}
