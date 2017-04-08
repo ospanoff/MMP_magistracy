@@ -3,6 +3,7 @@ AMA/*/data
 MOMO/*/data
 NLP/*/data
 !AMA/n2/data
+*.wa
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

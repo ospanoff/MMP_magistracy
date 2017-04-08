@@ -9,6 +9,7 @@
 #   a_j = alignment index of f_j (i.e. an index into src_tokens)
 
 import os, sys, codecs, utils
+import numpy as np
 from math import log
 from models import PriorModel
 from models import TranslationModel
@@ -16,7 +17,18 @@ from models import TranslationModel
 def get_posterior_distribution_for_trg_token(trg_index, src_tokens, trg_tokens,
                                              prior_model, translation_model):
     "Compute the posterior distribution over alignments for trg_index: P(a_j = i|f_j, e)."
-    assert False, "Implement this."
+    # assert False, "Implement this."
+    src_length = len(src_tokens)
+    trg_length = len(trg_tokens)
+
+    joint_probs = np.array([
+        prior_model.get_prior_prob(i, trg_index, src_length, trg_length) *
+        translation_model.get_conditional_prob(src_tokens[i], trg_tokens[trg_index])
+        for i in range(src_length)
+    ])
+    marginal_prob = joint_probs.sum()
+    posterior_probs = joint_probs / marginal_prob
+
     # Compute the following two values given the current model parameters (E-step)
     #   marginal_prob = p(f_j|e) = sum over i p(f_j, a_j = i|e)
     #   posterior_probs[i] = p(a_j = i|f_j, e) = p(f_j, a_j = i|e) / p(f_j|e)
@@ -24,8 +36,8 @@ def get_posterior_distribution_for_trg_token(trg_index, src_tokens, trg_tokens,
     # Hint:
     #  joint_probs[i] = p(f_j, a_j = i|e) = p(a_j = i|e) p(f_j|a_j=i, e)
     #  - use the prior_model.get_prior_prob method to compute p(a_j = i|e)
-    #  - use the translation_model.get_conditional_prob method to compute p(f_j|a_j = i, e) 
-    return marginal_prob, posterior_probs
+    #  - use the translation_model.get_conditional_prob method to compute p(f_j|a_j = i, e)
+    return marginal_prob, posterior_probs.tolist()
 
 def get_posterior_alignment_matrix(src_tokens, trg_tokens, prior_model, translation_model):
     "For each target token compute the posterior alignment probability: p(a_j=i | f_j, e)"
@@ -116,4 +128,3 @@ if __name__ == "__main__":
     assert len(src_corpus) == len(trg_corpus), "Corpora should be same size!"
     alignments = align_corpus(src_corpus, trg_corpus, num_iterations)
     utils.output_alignments_per_test_set(alignments, output_prefix)
-

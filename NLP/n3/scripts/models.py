@@ -1,10 +1,11 @@
 # Models for word alignment
+from collections import defaultdict
 
 class TranslationModel:
     "Models conditional distribution over trg words given a src word, i.e. t(f|e)."
 
     def __init__(self, src_corpus, trg_corpus):
-        self._src_trg_counts = {}
+        self._src_trg_counts = defaultdict(lambda: defaultdict(int))
         self._trg_given_src_probs = {}
 
     def get_conditional_prob(self, src_token, trg_token):
@@ -20,16 +21,21 @@ class TranslationModel:
         assert len(posterior_matrix) == len(trg_tokens)
         for posterior in posterior_matrix:
             assert len(posterior) == len(src_tokens)
-        # Hint - You just need to count how often each src and trg token are aligned
-        # but since we don't have labeled data you'll use the posterior_matrix[j][i]
-        # as the 'fractional' count for src_tokens[i] and trg_tokens[k].
-        assert False, "Collect statistics here!"
+
+        for i, src_token in enumerate(src_tokens):
+            for j, trg_token in enumerate(trg_tokens):
+                self._src_trg_counts[src_token][trg_token] += posterior_matrix[j][i]
 
     def recompute_parameters(self):
         "Reestimate parameters and reset counters."
-        # Hint - Just normalize the self._src_and_trg_counts so that the conditional
-        # distributions self._trg_given_src_probs are correctly normalized to give t(f|e).
-        assert False, "Recompute parameters here."
+        self._trg_given_src_probs = {}
+        for src_token in self._src_trg_counts:
+            self._trg_given_src_probs[src_token] = {}
+            trg_tokens_dict = self._src_trg_counts[src_token]
+            trg_tokens_sum = sum(trg_tokens_dict.values())
+            for trg_token in trg_tokens_dict:
+                self._trg_given_src_probs[src_token][trg_token] = \
+                    1.0 * trg_tokens_dict[trg_token] / trg_tokens_sum
 
 class PriorModel:
     "Models the prior probability of an alignment given only the sentence lengths and token indices."
@@ -42,7 +48,7 @@ class PriorModel:
     def get_prior_prob(self, src_index, trg_index, src_length, trg_length):
         "Returns a uniform prior probability."
         # Hint - you can probably improve on this, but this works as is.
-        return 1.0/ src_length
+        return 1.0 / src_length
 
     def collect_statistics(self, src_length, trg_length, posterior_matrix):
         "Count the necessary statistics from this matrix if needed."
