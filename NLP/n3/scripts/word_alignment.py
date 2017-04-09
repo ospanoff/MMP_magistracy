@@ -29,14 +29,6 @@ def get_posterior_distribution_for_trg_token(trg_index, src_tokens, trg_tokens,
     marginal_prob = joint_probs.sum()
     posterior_probs = joint_probs / marginal_prob
 
-    # Compute the following two values given the current model parameters (E-step)
-    #   marginal_prob = p(f_j|e) = sum over i p(f_j, a_j = i|e)
-    #   posterior_probs[i] = p(a_j = i|f_j, e) = p(f_j, a_j = i|e) / p(f_j|e)
-    #
-    # Hint:
-    #  joint_probs[i] = p(f_j, a_j = i|e) = p(a_j = i|e) p(f_j|a_j=i, e)
-    #  - use the prior_model.get_prior_prob method to compute p(a_j = i|e)
-    #  - use the translation_model.get_conditional_prob method to compute p(f_j|a_j = i, e)
     return marginal_prob, posterior_probs.tolist()
 
 def get_posterior_alignment_matrix(src_tokens, trg_tokens, prior_model, translation_model):

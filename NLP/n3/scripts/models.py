@@ -5,7 +5,7 @@ class TranslationModel:
     "Models conditional distribution over trg words given a src word, i.e. t(f|e)."
 
     def __init__(self, src_corpus, trg_corpus):
-        self._src_trg_counts = defaultdict(lambda: defaultdict(int))
+        self._src_trg_counts = defaultdict(lambda: defaultdict(float))
         self._trg_given_src_probs = {}
 
     def get_conditional_prob(self, src_token, trg_token):
@@ -42,18 +42,34 @@ class PriorModel:
 
     def __init__(self, src_corpus, trg_corpus):
         "Add counters and parameters here for more sophisticated models."
-        self._distance_counts = {}
+        self._distance_counts = defaultdict(lambda: defaultdict(float))
         self._distance_probs = {}
 
     def get_prior_prob(self, src_index, trg_index, src_length, trg_length):
         "Returns a uniform prior probability."
-        # Hint - you can probably improve on this, but this works as is.
-        return 1.0 / src_length
+        if src_index not in self._distance_probs:
+            return 1.0 / src_length
+        if trg_index not in self._distance_probs[src_index]:
+            return 1.0 / trg_length
+        return self._distance_probs[src_index][trg_index]
 
     def collect_statistics(self, src_length, trg_length, posterior_matrix):
         "Count the necessary statistics from this matrix if needed."
-        pass
+        assert len(posterior_matrix) == trg_length
+        for posterior in posterior_matrix:
+            assert len(posterior) == src_length
+
+        for i in range(src_length):
+            for j in range(trg_length):
+                self._distance_counts[i][j] += posterior_matrix[j][i]
 
     def recompute_parameters(self):
         "Reestimate the parameters and reset counters."
-        pass
+        self._distance_probs = {}
+        for src_length in self._distance_counts:
+            self._distance_probs[src_length] = {}
+            trg_length_dict = self._distance_counts[src_length]
+            trg_length_sum = sum(trg_length_dict.values())
+            for trg_length in trg_length_dict:
+                self._distance_probs[src_length][trg_length] = \
+                    1.0 * trg_length_dict[trg_length] / trg_length_sum

@@ -4,6 +4,10 @@ MOMO/*/data
 NLP/*/data
 !AMA/n2/data
 *.wa
+*.fls
+*.aux
+*.fdb_latexmk
+*.synctex*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
