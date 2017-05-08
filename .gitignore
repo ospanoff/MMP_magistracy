@@ -8,6 +8,7 @@ NLP/*/data
 *.aux
 *.fdb_latexmk
 *.synctex*
+*.toc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
