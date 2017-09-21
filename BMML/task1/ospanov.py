@@ -58,16 +58,19 @@ def pc_a(a, params, model):
     b_quant = np.arange(params['bmax'] + 1)
 
     if model == 1:
-        p_A = stats.binom.pmf(a_quant, a, params['p1'])
+        p_A = stats.binom.pmf(a_quant, a[:, np.newaxis], params['p1'])
         p_B = stats.binom.pmf(b_quant, b_carrier, params['p2']).sum(axis=0)
 
     elif model == 2:
-        p_A = stats.poisson.pmf(a_quant, a * params['p1'])
+        p_A = stats.poisson.pmf(a_quant, a[:, np.newaxis] * params['p1'])
         p_B = stats.poisson.pmf(b_quant, b_carrier * params['p2']).sum(axis=0)
 
-    pC_A = np.convolve(p_A, p_B)
+    pC_A = []
+    for p_a in p_A:
+        tmp = np.convolve(p_a, p_B)
+        pC_A += [tmp / tmp.sum()]
 
-    return pC_A / pC_A.sum(), np.arange(params['amax'] + params['bmax'] + 1)
+    return np.array(pC_A).T, np.arange(params['amax'] + params['bmax'] + 1)
 
 
 def pc_b(b, params, model):
@@ -77,23 +80,27 @@ def pc_b(b, params, model):
 
     if model == 1:
         p_A = stats.binom.pmf(a_quant, a_carrier, params['p1']).sum(axis=0)
-        p_B = stats.binom.pmf(b_quant, b, params['p2'])
+        p_B = stats.binom.pmf(b_quant, b[:, np.newaxis], params['p2'])
 
     elif model == 2:
         p_A = stats.poisson.pmf(a_quant, a_carrier * params['p1']).sum(axis=0)
-        p_B = stats.poisson.pmf(b_quant, b * params['p2'])
+        p_B = stats.poisson.pmf(b_quant, b[:, np.newaxis] * params['p2'])
 
-    pC_B = np.convolve(p_A, p_B)
+    pC_B = []
+    for p_b in p_B:
+        tmp = np.convolve(p_A, p_b)
+        pC_B += [tmp / tmp.sum()]
 
-    return pC_B / pC_B.sum(), np.arange(params['amax'] + params['bmax'] + 1)
+    return np.array(pC_B).T, np.arange(params['amax'] + params['bmax'] + 1)
 
 
 def pc_d(d, params, model):
     c_carrier = np.arange(params['amax'] + params['bmax'] + 1)
-    pD_C = stats.binom.pmf(d, c_carrier, params['p3'], c_carrier)
-    pC_D = pD_C * pc(params, model)[0]
+    pD_C = stats.binom.pmf(d[:, np.newaxis], c_carrier,
+                           params['p3'], c_carrier)
+    pC_D = (pD_C * pc(params, model)[0]).T
 
-    return pC_D / pC_D.sum(), c_carrier
+    return pC_D / pC_D.sum(axis=0), c_carrier
 
 
 def pc_ab(a, b, params, model):
@@ -101,23 +108,39 @@ def pc_ab(a, b, params, model):
     a_quant = np.arange(params['amax'] + 1)
     b_quant = np.arange(params['bmax'] + 1)
 
+    a = a[:, np.newaxis]
+    b = b[:, np.newaxis]
+
     if model == 1:
-        p = np.convolve(
-            stats.binom.pmf(a_quant, a, params['p1']),
-            stats.binom.pmf(b_quant, b, params['p2'])
-        )
-        p /= p.sum()
+        p_A = stats.binom.pmf(a_quant, a, params['p1'])
+        p_B = stats.binom.pmf(b_quant, b, params['p2'])
+        p = []
+        for p_a in p_A:
+            p_by_b = []
+            for p_b in p_B:
+                tmp = np.convolve(
+                    p_a, p_b
+                )
+                p_by_b += [tmp / tmp.sum()]
+            p += [p_by_b]
 
     elif model == 2:
-        p = stats.poisson.pmf(c_carrier, a * params['p1'] + b * params['p2'])
+        p = []
+        for a_ in a.ravel():
+            p += [stats.poisson.pmf(c_carrier,
+                                    a_ * params['p1'] + b * params['p2'])]
 
-    return p, c_carrier
+    return np.transpose(np.array(p), (2, 0, 1)), c_carrier
 
 
 def pc_abd(a, b, d, params, model):
     c_carrier = np.arange(params['amax'] + params['bmax'] + 1)
 
-    pD_C = stats.binom.pmf(d, c_carrier, params['p3'], c_carrier)
-    pC_ABD = pD_C * pc_ab(a, b, params, model)[0]
+    pD_C = stats.binom.pmf(d[:, np.newaxis], c_carrier,
+                           params['p3'], c_carrier)
+    pC_ABD = []
+    for p in pD_C:
+        tmp = p.reshape(-1, 1, 1) * pc_ab(a, b, params, model)[0]
+        pC_ABD += [tmp / tmp.sum(axis=0)]
 
-    return pC_ABD / pC_ABD.sum(), c_carrier
+    return np.transpose(pC_ABD, (1, 2, 3, 0)), c_carrier
