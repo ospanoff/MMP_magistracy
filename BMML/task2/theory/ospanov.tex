@@ -1,0 +1,97 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage[pdftex]{graphicx, color}
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage[left=2cm,right=2cm,top=1.5cm,bottom=2cm]{geometry}
+\usepackage{indentfirst}
+\usepackage{hyperref}
+
+\usepackage{setspace}
+\onehalfspacing
+\graphicspath{{pics/}}
+
+\begin{document}
+    \begin{singlespace}
+    \begin{center}
+        \includegraphics[height=3cm]{msu.png}
+
+        {\large\textbf{Домашнее задание 2 по БММО\\
+        <<Матричные вычисления>>}\\}
+
+        \vspace{0.3cm}
+
+        \textit{\textbf{Аят Оспанов}}
+
+        617 гр., ММП, ВМК МГУ, Москва
+
+        4 октября 2017 г.
+    \end{center}
+    \end{singlespace}
+
+    \section*{Задача 1}
+    Доказать тождество Вудбери: $(A + UCV)^{-1} = A^{-1} - A^{-1}U(C^{-1} + VA^{-1}U)^{-1}VA^{-1}$
+    \begin{gather*}
+        I = (A + UCV)(A + UCV)^{-1} = (A + UCV)(A^{-1} - A^{-1}U(C^{-1} + VA^{-1}U)^{-1}VA^{-1}) =\\
+        = I + UCVA^{-1} - (A + UCV)A^{-1}U(C^{-1} + VA^{-1}U)^{-1}VA^{-1} = \\
+        = I + UCVA^{-1} - (U + UCVA^{-1}U)(C^{-1} + VA^{-1}U)^{-1}VA^{-1} =\\
+        = I + UCVA^{-1} - UC(C^{-1} + VA^{-1}U)(C^{-1} + VA^{-1}U)^{-1}VA^{-1} =\\
+        = I + UCVA^{-1} - UCVA^{-1} = I
+    \end{gather*}
+
+    \section*{Задача 2}
+    \begin{gather*}
+        p(x|y) \propto p(y|x)p(x) \propto \exp{\Big(-\frac{1}{2}(x - \mu)^T\Sigma^{-1}(x - \mu) -\frac{1}{2}(y - Ax)^T\Gamma^{-1}(y - Ax)\Big)}\\
+        (x - \mu)^T\Sigma^{-1}(x - \mu) + (y - Ax)^T\Gamma^{-1}(y - Ax) = \\
+        = x^T\Sigma^{-1}x - \mu^T\Sigma^{-1}x - x^T\Sigma^{-1}\mu + \mu^T\Sigma^{-1}\mu + y^T\Gamma^{-1}y - x^TA^T\Gamma^{-1}y - y^T\Gamma^{-1}Ax + x^TA^T\Gamma^{-1}Ax=\\
+        = x^T(\Sigma^{-1} + A^T\Gamma^{-1}A)x - (\mu^T\Sigma^{-1} + y^T\Gamma^{-1}A)x - x^T(\Sigma^{-1}\mu + A^T\Gamma^{-1}y) + (\mu^T\Sigma^{-1}\mu + y^T\Gamma^{-1}y)=\\
+        = x^T\Sigma'^{-1}x - \mu'^T\Sigma'^{-1}x - x^T\Sigma'^{-1}\mu' + \mu'^T\Sigma'^{-1}\mu' = (x - \mu')^T\Sigma'^{-1}(x - \mu')\\
+        \\
+        p(x|y) = \mathcal{N}(x|\mu',\Sigma'),\\
+        \mu' = (\Sigma^{-1} + A^T\Gamma^{-1}A)^{-1}(\Sigma^{-1}\mu + A^T\Gamma^{-1}y)\\ \Sigma' = (\Sigma^{-1} + A^T\Gamma^{-1}A)^{-1}
+    \end{gather*}
+
+    \section*{Задача 3}
+    \begin{gather*}
+        \mathbb{E}(x-a)^TB(x-a) = \mathbb{E}[x^TBx-x^TBa-a^TBx+a^TBa] = \\
+        = \mathbb{E}(x^TBx) - \mathbb{E}(x^TBa) - \mathbb{E}(a^TBx) + \mathbb{E}(a^TBa) =\\
+        = tr(\mathbb{E}(x^TBx) - \mathbb{E}(x^T)Ba - a^TB\mathbb{E}x + a^TBa = \\
+        = \mathbb{E}(tr(x^TBx)) - \mu^T Ba - a^TB\mu + a^TBa = \\
+        = \Big\{\mathbb{E}tr(x^TBx) = \mathbb{E}tr(Bxx^T) = tr B\mathbb{E}(xx^T) = tr B(\Sigma + \mu\mu^T) = tr B\Sigma + tr(\mu^TB\mu) = tr B\Sigma + \mu^TB\mu\Big\} = \\
+        = tr(B\Sigma) + \mu^TB\mu - \mu^T Ba - a^TB\mu + a^TBa = \\
+        = tr(B\Sigma) + (\mu - a)^TB(\mu - a)
+    \end{gather*}
+
+    \section*{Задача 4}
+    \begin{gather*}
+        \frac{\partial}{\partial X}\det(X^{-1} + A) = \frac{\partial}{\partial X}\det{A} \det{X^{-1}} \det{(X+A^{-1})} = \\
+        = \det{A} \frac{\partial}{\partial X} \det{X^{-1}} \det{(X+A^{-1})} = \\
+        = \det{A} \Big[\det{(X+A^{-1})}\frac{\partial}{\partial X} \frac{1}{\det{X}} + \frac{1}{\det{X}}\frac{\partial}{\partial X}\det{(X+A^{-1})}\Big] = \\
+        = \det{A} \Big[\det{(X+A^{-1})}\frac{-\det{(X)}X^{-T}}{(\det{X})^2} + \frac{1}{\det{X}}\det{(X+A^{-1})}(X+A^{-1})^{-T}\Big] =\\
+        = \det{A} \frac{\det{(X+A^{-1})}}{\det{X}} [(X+A^{-1})^{-T} - X^{-T}] =\\ = \{\text{т. Вудбери}: (X+A^{-1})^{-T} = X^{-T} - X^{-T}(A^T + X^{-T})^{-1}X^{-T}\} =\\
+        = -\det{A} \frac{\det{(X+A^{-1})}}{\det{X}}X^{-T}(A^T + X^{-T})^{-1}X^{-T}
+    \end{gather*}
+
+    \section*{Задача 5}
+    \begin{gather*}
+        \frac{\partial}{\partial X} tr(AX^{-T}BXC) = \{trA^T = trA\} = \\
+        = \frac{\partial}{\partial X} tr(C^TX^TB^TX^{-1}A^T) = \\
+        = \{\text{Matrix Calculus -- Notes on the Derivative of a Trace (Johannes Traa), стр.3}\} = \\
+        = \frac{\partial}{\partial X} tr(C^TX^TD) + \frac{\partial}{\partial X} tr(EX^{-1}A^T) =
+        \left\{
+            \begin{array}{l}
+                D = B^TX^{-1}A^T\\
+                E = C^TX^TB^T\\
+            \end{array}
+        \right\} = \\
+        = \left\{
+            \begin{array}{l}
+                \frac{\partial}{\partial X}tr(AX^TB) = BA\\
+                \frac{\partial}{\partial X}tr(AX^{-1}B) = -(X^{-1}BAX^{-1})^T\\
+            \end{array}
+        \right\} = DC^T - (X^{-1}A^TEX^{-1})^T = \\
+        = B^TX^{-1}A^TC^T - (X^{-1}A^TC^TX^TB^TX^{-1})^T = \\
+        = B^TX^{-1}A^TC^T - X^{-T}BXCAX^{-T}
+    \end{gather*}
+
+\end{document}
