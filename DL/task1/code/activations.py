@@ -65,7 +65,7 @@ class ReluActivationFunction(BaseActivationFunction):
         return np.maximum(0, X)
 
     def deriv(self, X):
-        return X > 0
+        return (X > 0).astype(X.dtype)
 
     def second_deriv(self, X):
         return np.zeros_like(X)
