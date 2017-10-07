@@ -119,6 +119,7 @@ class FCLayer(BaseLayer):
         """
         self.afun = afun
         self.shape = shape
+        self.use_bias = use_bias
 
     def get_params_number(self):
         return np.prod(self.shape)
@@ -128,6 +129,8 @@ class FCLayer(BaseLayer):
 
     def set_weights(self, w):
         self.W = w.reshape(self.shape)
+        if self.use_bias:
+            self.W[-1] = 0
 
     def set_direction(self, p):
         self.P = p.reshape(self.shape)
@@ -135,14 +138,30 @@ class FCLayer(BaseLayer):
     def forward(self, inputs):
         self.z_prev = inputs
         self.u = self.W.T.dot(inputs)
-        return self.afun.val(self.u)
+        self.z = self.afun.val(self.u)
+        return self.z
 
     def backward(self, derivs):
-        u_derivs = derivs * self.afun.deriv(self.u)
-        input_derivs = self.W.dot(u_derivs)
-        w_derivs = u_derivs.dot(self.z_prev.T).ravel()
+        self.z_derivs = derivs
+        self.u_derivs = derivs * self.afun.deriv(self.u)
+        input_derivs = self.W.dot(self.u_derivs)
+        w_derivs = self.u_derivs.dot(self.z_prev.T).ravel()
         return input_derivs, w_derivs
 
     def Rp_forward(self, Rp_inputs):
-        Rp_u = self.W.T.dot(Rp_inputs) + self.P.T.dot(self.z_prev)
-        return self.afun.deriv(self.u) * Rp_u
+        self.Rp_z_prev = Rp_inputs
+        self.Rp_u = self.W.T.dot(Rp_inputs) + self.P.T.dot(self.z_prev)
+        return self.afun.deriv(self.u) * self.Rp_u
+
+    def Rp_backward(self, Rp_derivs):
+        Rp_u_derivs = Rp_derivs * self.afun.deriv(self.u) +\
+            self.z_derivs * self.afun.second_deriv(self.u) * self.Rp_u
+        input_Rp_derivs = self.P.dot(self.u_derivs) +\
+            self.W.dot(Rp_u_derivs)
+        w_Rp_derivs = Rp_u_derivs.dot(self.z_prev.T) +\
+            self.u_derivs.dot(self.Rp_z_prev.T)
+
+        return input_Rp_derivs, w_Rp_derivs
+
+    def get_activations(self):
+        return self.z
