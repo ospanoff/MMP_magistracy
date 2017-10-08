@@ -129,7 +129,7 @@ class FCLayer(BaseLayer):
 
     def set_weights(self, w):
         self.W = w.reshape(self.shape)
-        if self.use_bias:
+        if not self.use_bias:
             self.W[-1] = 0
 
     def set_direction(self, p):

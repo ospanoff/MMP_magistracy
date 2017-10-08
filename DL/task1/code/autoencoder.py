@@ -4,6 +4,7 @@
 # Implementation of autoencoder using general feed-forward neural network
 
 import ffnet
+import numpy as np
 
 
 class Autoencoder:
@@ -80,7 +81,47 @@ class Autoencoder:
             'test_grad': norm of loss gradients for testing sample after each
                 epoch, list
         """
-        pass
+        if display:
+            s = "Epoch: Loss \t Norm of loss_grad"
+            if test_inputs is not None:
+                s += " \t Test loss \t Norm of test loss_grad"
+            print(s)
+
+        w = self.net.get_weights()
+        v = np.zeros_like(w)
+
+        result = {'train_loss': [], 'train_grad': [],
+                  'test_loss': [], 'test_grad': []}
+
+        for k in range(num_epoch):
+            epochHist = []
+            for i in range(0, inputs.shape[1], minibatch_size):
+                loss, loss_grad = self.compute_loss(
+                    inputs[:, i: i + minibatch_size]
+                )
+                v = momentum * v - step_size * (loss_grad + l2_coef * w)
+                w += v
+
+                epochHist += [[loss, np.linalg.norm(loss_grad)]]
+            self.net.set_weights(w)
+
+            hist = np.mean(epochHist, axis=0).tolist()
+
+            result['train_loss'] += [hist[0]]
+            result['train_grad'] += [hist[1]]
+            if test_inputs is not None:
+                loss, loss_grad = self.compute_loss(test_inputs)
+                hist += [loss, np.linalg.norm(loss_grad)]
+                result['test_loss'] += [hist[2]]
+                result['test_grad'] += [hist[3]]
+
+            if display:
+                s = "#{}: {}\t{}"
+                if test_inputs is not None:
+                    s += "\t{}\t{}"
+                print(s.format(k + 1, *hist))
+
+        return result
 
     def run_rmsprop(self, inputs, step_size=0.01, num_epoch=200,
                     minibatch_size=100, l2_coef=1e-5, test_inputs=None,
@@ -106,7 +147,49 @@ class Autoencoder:
             'test_grad': norm of loss gradients for testing sample after each
                 epoch, list
         """
-        pass
+        if display:
+            s = "Epoch: Loss \t Norm of loss_grad"
+            if test_inputs is not None:
+                s += " \t Test loss \t Norm of test loss_grad"
+            print(s)
+
+        w = self.net.get_weights()
+        v = (w ** 2).mean()
+        gamma = 0.9
+        eps = 1e-10
+
+        result = {'train_loss': [], 'train_grad': [],
+                  'test_loss': [], 'test_grad': []}
+
+        for k in range(num_epoch):
+            epochHist = []
+            for i in range(0, inputs.shape[1], minibatch_size):
+                loss, loss_grad = self.compute_loss(
+                    inputs[:, i: i + minibatch_size]
+                )
+                v = gamma * v - (1 - gamma) * (loss_grad ** 2)
+                w -= step_size * (loss_grad + l2_coef * w) / np.sqrt(v + eps)
+
+                epochHist += [[loss, np.linalg.norm(loss_grad)]]
+            self.net.set_weights(w)
+
+            hist = np.mean(epochHist, axis=0).tolist()
+
+            result['train_loss'] += [hist[0]]
+            result['train_grad'] += [hist[1]]
+            if test_inputs is not None:
+                loss, loss_grad = self.compute_loss(test_inputs)
+                hist += [loss, np.linalg.norm(loss_grad)]
+                result['test_loss'] += [hist[2]]
+                result['test_grad'] += [hist[3]]
+
+            if display:
+                s = "#{}: {}\t{}"
+                if test_inputs is not None:
+                    s += "\t{}\t{}"
+                print(s.format(k + 1, *hist))
+
+        return result
 
     def run_adam(self, inputs, step_size=0.01, num_epoch=200,
                  minibatch_size=100, l2_coef=1e-5, test_inputs=None,
@@ -132,4 +215,49 @@ class Autoencoder:
             'test_grad': norm of loss gradients for testing sample after each
                 epoch, list
         """
-        pass
+        if display:
+            s = "Epoch: Loss \t Norm of loss_grad"
+            if test_inputs is not None:
+                s += " \t Test loss \t Norm of test loss_grad"
+            print(s)
+
+        w = self.net.get_weights()
+        m, v = 0, 0
+        beta1, beta2 = 0.001, 0.9
+        eps = 1e-10
+
+        result = {'train_loss': [], 'train_grad': [],
+                  'test_loss': [], 'test_grad': []}
+
+        for k in range(num_epoch):
+            epochHist = []
+            for i in range(0, inputs.shape[1], minibatch_size):
+                loss, loss_grad = self.compute_loss(
+                    inputs[:, i: i + minibatch_size]
+                )
+                m = beta1 * m + (1 - beta1) * loss_grad
+                v = beta2 * v - (1 - beta2) * (loss_grad ** 2)
+                m_k = m / (1 - beta1 ** k)
+                v_k = v / (1 - beta2 ** k)
+                w -= step_size * m_k / np.sqrt(v_k + eps)
+
+                epochHist += [[loss, np.linalg.norm(loss_grad)]]
+            self.net.set_weights(w)
+
+            hist = np.mean(epochHist, axis=0).tolist()
+
+            result['train_loss'] += [hist[0]]
+            result['train_grad'] += [hist[1]]
+            if test_inputs is not None:
+                loss, loss_grad = self.compute_loss(test_inputs)
+                hist += [loss, np.linalg.norm(loss_grad)]
+                result['test_loss'] += [hist[2]]
+                result['test_grad'] += [hist[3]]
+
+            if display:
+                s = "#{}: {}\t{}"
+                if test_inputs is not None:
+                    s += "\t{}\t{}"
+                print(s.format(k + 1, *hist))
+
+        return result
