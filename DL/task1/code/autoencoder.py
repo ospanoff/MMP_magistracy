@@ -28,8 +28,12 @@ class Autoencoder:
         :return loss: loss value, a number
         :return loss_grad: loss gradient, numpy vector of length num_params
         """
+        N = inputs.shape[1]
         diff = self.net.compute_outputs(inputs) - inputs
-        return (diff ** 2).sum() / 2, self.net.compute_loss_grad(diff)
+        return (
+            0.5 * (diff ** 2).sum() / N,
+            self.net.compute_loss_grad(diff / N)
+        )
 
     def compute_hessvec(self, p):
         """
@@ -53,7 +57,7 @@ class Autoencoder:
         """
         self.net.set_direction(p)
         q = self.net.compute_Rp_outputs()
-        G = self.net.get_activations(-1).z_L.T.dot(q).mean(axis=1)
+        G = self.net.get_activations(-1).T.dot(q).mean(axis=0)
         return self.net.compute_loss_grad(G)
 
     def run_sgd(self, inputs, step_size=0.01, momentum=0.9, num_epoch=200,
@@ -237,8 +241,8 @@ class Autoencoder:
                 )
                 m = beta1 * m + (1 - beta1) * loss_grad
                 v = beta2 * v - (1 - beta2) * (loss_grad ** 2)
-                m_k = m / (1 - beta1 ** k)
-                v_k = v / (1 - beta2 ** k)
+                m_k = m / (1 - beta1 ** (k + 1))
+                v_k = v / (1 - beta2 ** (k + 1))
                 w -= step_size * m_k / np.sqrt(v_k + eps)
 
                 epochHist += [[loss, np.linalg.norm(loss_grad)]]
