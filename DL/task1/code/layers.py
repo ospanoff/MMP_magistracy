@@ -168,6 +168,7 @@ class FCLayer(BaseLayer):
             self.Rp_z_prev = np.vstack((Rp_inputs, np.zeros(Rp_sh)))
 
         self.Rp_u = self.W.dot(self.Rp_z_prev) + self.P.dot(self.z_prev)
+        self.Rp_z_prev = Rp_inputs
         return self.deriv_u * self.Rp_u
 
     def Rp_backward(self, Rp_derivs):

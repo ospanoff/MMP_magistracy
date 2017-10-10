@@ -99,15 +99,15 @@ class Autoencoder:
 
         for k in range(num_epoch):
             epochHist = []
-            for i in range(0, inputs.shape[1], minibatch_size):
+            for indx in get_batch_idx(inputs.shape[1], minibatch_size):
                 loss, loss_grad = self.compute_loss(
-                    inputs[:, i: i + minibatch_size]
+                    inputs[:, indx]
                 )
                 v = momentum * v - step_size * (loss_grad + l2_coef * w)
                 w += v
 
                 epochHist += [[loss, np.linalg.norm(loss_grad)]]
-            self.net.set_weights(w)
+                self.net.set_weights(w)
 
             hist = np.mean(epochHist, axis=0).tolist()
 
@@ -158,24 +158,25 @@ class Autoencoder:
             print(s)
 
         w = self.net.get_weights()
-        v = (w ** 2).mean()
+        v = np.zeros_like(w.shape)  # (w ** 2).mean()
         gamma = 0.9
-        eps = 1e-10
+        eps = 1e-8
 
         result = {'train_loss': [], 'train_grad': [],
                   'test_loss': [], 'test_grad': []}
 
         for k in range(num_epoch):
             epochHist = []
-            for i in range(0, inputs.shape[1], minibatch_size):
+            for indx in get_batch_idx(inputs.shape[1], minibatch_size):
                 loss, loss_grad = self.compute_loss(
-                    inputs[:, i: i + minibatch_size]
+                    inputs[:, indx]
                 )
-                v = gamma * v - (1 - gamma) * (loss_grad ** 2)
-                w -= step_size * (loss_grad + l2_coef * w) / np.sqrt(v + eps)
+                loss_grad += l2_coef * w
+                v = gamma * v + (1 - gamma) * (loss_grad ** 2)
+                w -= step_size * (loss_grad) / np.sqrt(v + eps)
 
                 epochHist += [[loss, np.linalg.norm(loss_grad)]]
-            self.net.set_weights(w)
+                self.net.set_weights(w)
 
             hist = np.mean(epochHist, axis=0).tolist()
 
@@ -227,26 +228,29 @@ class Autoencoder:
 
         w = self.net.get_weights()
         m, v = 0, 0
-        beta1, beta2 = 0.001, 0.9
-        eps = 1e-10
+        beta1, beta2 = 0.9, 0.99
+        eps = 1e-8
+        t = 0
 
         result = {'train_loss': [], 'train_grad': [],
                   'test_loss': [], 'test_grad': []}
 
         for k in range(num_epoch):
             epochHist = []
-            for i in range(0, inputs.shape[1], minibatch_size):
+            for indx in get_batch_idx(inputs.shape[1], minibatch_size):
+                t += 1
                 loss, loss_grad = self.compute_loss(
-                    inputs[:, i: i + minibatch_size]
+                    inputs[:, indx]
                 )
+                loss_grad += l2_coef * w
                 m = beta1 * m + (1 - beta1) * loss_grad
-                v = beta2 * v - (1 - beta2) * (loss_grad ** 2)
-                m_k = m / (1 - beta1 ** (k + 1))
-                v_k = v / (1 - beta2 ** (k + 1))
+                v = beta2 * v + (1 - beta2) * (loss_grad ** 2)
+                m_k = m / (1 - beta1 ** t)
+                v_k = v / (1 - beta2 ** t)
                 w -= step_size * m_k / np.sqrt(v_k + eps)
 
                 epochHist += [[loss, np.linalg.norm(loss_grad)]]
-            self.net.set_weights(w)
+                self.net.set_weights(w)
 
             hist = np.mean(epochHist, axis=0).tolist()
 
@@ -265,3 +269,10 @@ class Autoencoder:
                 print(s.format(k + 1, *hist))
 
         return result
+
+
+def get_batch_idx(data_size, batch_size):
+    indices = np.arange(data_size)
+    np.random.shuffle(indices)
+    for i in range(0, data_size, batch_size):
+        yield indices[i: i + batch_size]
