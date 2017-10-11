@@ -69,3 +69,19 @@ class ReluActivationFunction(BaseActivationFunction):
 
     def second_deriv(self, X):
         return np.zeros_like(X)
+
+
+class LeakyReluActivationFunction(BaseActivationFunction):
+    def __init__(self, alpha=0.01):
+        self.alpha = alpha
+
+    def val(self, X):
+        return np.maximum(X, self.alpha * X)
+
+    def deriv(self, X):
+        deriv = np.ones_like(X)
+        deriv[X < 0] = self.alpha
+        return deriv
+
+    def second_deriv(self, X):
+        return np.zeros_like(X)
