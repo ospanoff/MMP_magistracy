@@ -4,6 +4,7 @@
 # Implementation of layers used within neural networks
 
 import numpy as np
+from scipy.stats import truncnorm
 
 
 class BaseLayer(object):
@@ -122,7 +123,9 @@ class FCLayer(BaseLayer):
         self.theory_shape = (self.shape[1], self.shape[0])
         self.use_bias = use_bias
 
-        self.W = np.random.normal(scale=0.05, size=self.theory_shape)
+        scale = np.sqrt(1 / max(1, np.sum(self.shape) / 2))
+        self.W = truncnorm.rvs(-2 * scale, 2 * scale,
+                               scale=scale, size=self.theory_shape)
         if self.use_bias:
             bias = np.zeros(self.W.shape[0])
             self.W = np.hstack((self.W, bias[:, np.newaxis]))

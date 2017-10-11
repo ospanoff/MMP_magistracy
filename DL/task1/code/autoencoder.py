@@ -28,10 +28,11 @@ class Autoencoder:
         :return loss: loss value, a number
         :return loss_grad: loss gradient, numpy vector of length num_params
         """
+        self.N = inputs.shape[1]
         diff = self.net.compute_outputs(inputs) - inputs
         return (
-            0.5 * (diff ** 2).sum(),
-            self.net.compute_loss_grad(diff)
+            0.5 * (diff ** 2).sum() / self.N,
+            self.net.compute_loss_grad(diff / self.N)
         )
 
     def compute_hessvec(self, p):
@@ -43,7 +44,7 @@ class Autoencoder:
         """
         self.net.set_direction(p)
         return self.net.compute_loss_Rp_grad(
-            loss_Rp_derivs=self.net.compute_Rp_outputs()
+            loss_Rp_derivs=self.net.compute_Rp_outputs() / self.N
         )
 
     def compute_gaussnewtonvec(self, p):
@@ -56,7 +57,7 @@ class Autoencoder:
         """
         self.net.set_direction(p)
         return self.net.compute_loss_grad(
-            self.net.compute_Rp_outputs()
+            self.net.compute_Rp_outputs() / self.N
         )
 
     def run_sgd(self, inputs, step_size=0.01, momentum=0.9, num_epoch=200,
@@ -85,9 +86,9 @@ class Autoencoder:
                 epoch, list
         """
         if display:
-            s = "Epoch: Loss \t Norm of loss_grad"
+            s = "Epoch:\t Loss\t Norm of loss_grad"
             if test_inputs is not None:
-                s += " \t Test loss \t Norm of test loss_grad"
+                s += "\t Test loss\t Norm of test loss_grad"
             print(s)
 
         w = self.net.get_weights()
@@ -102,8 +103,8 @@ class Autoencoder:
                 loss, loss_grad = self.compute_loss(
                     inputs[:, indx]
                 )
-                v = momentum * v - step_size * (loss_grad + l2_coef * w)
-                w += v
+                v = momentum * v + step_size * (loss_grad + l2_coef * w)
+                w -= v
 
                 epochHist += [[loss, np.linalg.norm(loss_grad)]]
                 self.net.set_weights(w)
@@ -119,7 +120,7 @@ class Autoencoder:
                 result['test_grad'] += [hist[3]]
 
             if display:
-                s = "#{}: {}\t{}"
+                s = "#{}:\t{}\t{}"
                 if test_inputs is not None:
                     s += "\t{}\t{}"
                 print(s.format(k + 1, *hist))
@@ -151,9 +152,9 @@ class Autoencoder:
                 epoch, list
         """
         if display:
-            s = "Epoch: Loss \t Norm of loss_grad"
+            s = "Epoch:\t Loss\t Norm of loss_grad"
             if test_inputs is not None:
-                s += " \t Test loss \t Norm of test loss_grad"
+                s += "\t Test loss\t Norm of test loss_grad"
             print(s)
 
         w = self.net.get_weights()
@@ -171,11 +172,12 @@ class Autoencoder:
                     inputs[:, indx]
                 )
                 loss_grad += l2_coef * w
-                v = gamma * v + (1 - gamma) * (loss_grad ** 2)
-                w -= step_size * (loss_grad) / np.sqrt(v + eps)
+                v = gamma * v + (1 - gamma) * (loss_grad * loss_grad)
+                w -= step_size * loss_grad / (np.sqrt(v) + eps)
 
-                epochHist += [[loss, np.linalg.norm(loss_grad)]]
                 self.net.set_weights(w)
+
+            epochHist += [[loss, np.linalg.norm(loss_grad)]]
 
             hist = np.mean(epochHist, axis=0).tolist()
 
@@ -188,7 +190,7 @@ class Autoencoder:
                 result['test_grad'] += [hist[3]]
 
             if display:
-                s = "#{}: {}\t{}"
+                s = "#{}:\t{}\t{}"
                 if test_inputs is not None:
                     s += "\t{}\t{}"
                 print(s.format(k + 1, *hist))
@@ -220,9 +222,9 @@ class Autoencoder:
                 epoch, list
         """
         if display:
-            s = "Epoch: Loss \t Norm of loss_grad"
+            s = "Epoch:\t Loss\t Norm of loss_grad"
             if test_inputs is not None:
-                s += " \t Test loss \t Norm of test loss_grad"
+                s += "\t Test loss\t Norm of test loss_grad"
             print(s)
 
         w = self.net.get_weights()
@@ -262,7 +264,7 @@ class Autoencoder:
                 result['test_grad'] += [hist[3]]
 
             if display:
-                s = "#{}: {}\t{}"
+                s = "#{}:\t{}\t{}"
                 if test_inputs is not None:
                     s += "\t{}\t{}"
                 print(s.format(k + 1, *hist))
