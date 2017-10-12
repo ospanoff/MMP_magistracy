@@ -106,8 +106,8 @@ class Autoencoder:
                 v = momentum * v + step_size * (loss_grad + l2_coef * w)
                 w -= v
 
-                epochHist += [[loss, np.linalg.norm(loss_grad)]]
                 self.net.set_weights(w)
+                epochHist += [[loss, np.linalg.norm(loss_grad)]]
 
             hist = np.mean(epochHist, axis=0).tolist()
 
@@ -174,10 +174,9 @@ class Autoencoder:
                 loss_grad += l2_coef * w
                 v = gamma * v + (1 - gamma) * (loss_grad * loss_grad)
                 w -= step_size * loss_grad / (np.sqrt(v) + eps)
-
                 self.net.set_weights(w)
 
-            epochHist += [[loss, np.linalg.norm(loss_grad)]]
+                epochHist += [[loss, np.linalg.norm(loss_grad)]]
 
             hist = np.mean(epochHist, axis=0).tolist()
 
@@ -249,9 +248,9 @@ class Autoencoder:
                 m_k = m / (1 - beta1 ** t)
                 v_k = v / (1 - beta2 ** t)
                 w -= step_size * m_k / np.sqrt(v_k + eps)
+                self.net.set_weights(w)
 
                 epochHist += [[loss, np.linalg.norm(loss_grad)]]
-                self.net.set_weights(w)
 
             hist = np.mean(epochHist, axis=0).tolist()
 
