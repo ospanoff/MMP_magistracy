@@ -10,6 +10,9 @@ NLP/*/data
 *.synctex*
 *.toc
 *.out
+cmake-build-debug
+CMakeLists.txt
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
