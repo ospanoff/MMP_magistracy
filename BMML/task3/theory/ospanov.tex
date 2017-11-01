@@ -1,0 +1,127 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage[pdftex]{graphicx, color}
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage[left=1cm,right=1cm,top=1.5cm,bottom=2cm]{geometry}
+\usepackage{indentfirst}
+\usepackage{hyperref}
+
+\usepackage{setspace}
+\onehalfspacing
+\graphicspath{{pics/}}
+
+\begin{document}
+    \begin{singlespace}
+    \begin{center}
+        \includegraphics[height=3cm]{msu.png}
+
+        {\large\textbf{Домашнее задание 3 по БММО\\
+        <<Вариационный вывод>>}\\}
+
+        \vspace{0.3cm}
+
+        \textit{\textbf{Аят Оспанов}}
+
+        617 гр., ММП, ВМК МГУ, Москва
+
+        4 октября 2017 г.
+    \end{center}
+    \end{singlespace}
+
+    \tableofcontents
+
+    \section{Формулы пересчёта для компонент вариационного приближения}
+        \subsection{$q_T(T)$}
+            \begin{align*}
+                \log q_T(T) &= \mathbb{E}_{q_Z(Z)}\log p(X, T, Z\mid \omega, \mu, \Sigma_k, \nu) + const = \\
+                &= \mathbb{E}_{q_Z(Z)}\sum_{n=1}^{N}\sum_{k=1}^{K}t_{nk}\left[\log\omega_k + \log\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{z_n}) + \log\mathcal{G}(z_n\mid \frac{\nu}{2}, \frac{\nu}{2}) \right] + const = \\
+                &= \sum_{n=1}^{N}\mathbb{E}_{q_Z(Z)}\sum_{k=1}^{K}t_{nk}\left[\log\omega_k + \log\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{z_n}) + \log\mathcal{G}(z_n\mid \frac{\nu}{2}, \frac{\nu}{2}) \right] + const = \\
+                &= \sum_{n=1}^{N}\sum_{k=1}^{K}t_{nk}\left[\log\omega_k + \log\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{\mathbb{E}_{q_Z(Z)}\left[z_n\right]}) \right] + const
+            \end{align*}
+
+            Тогда:
+            \begin{align}
+                q_T(T) & = \prod_{n=1}^{N}\prod_{k=1}^{K}\left[\frac{\omega_k\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{\mathbb{E}_{q_Z(Z)}\left[z_n\right]})}{\sum_{l=1}^{K}\omega_l\mathcal{N}(x_n\mid \mu_l, \frac{\Sigma_l}{\mathbb{E}_{q_Z(Z)}\left[z_n\right]})} \right]^{t_{nk}}
+            \end{align}
+
+        \subsection{$q_Z(Z)$}
+            \begin{align*}
+                \log q_{z_n}(z_n) & = \mathbb{E}_{q_T(T)}\sum_{k=1}^{K}t_{nk}\left[\log\omega_k + \log\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{z_n}) + \log\mathcal{G}(z_n\mid \frac{\nu}{2}, \frac{\nu}{2}) \right] + const = \\
+                & = \left\{\text{Учитывая, что }\sum_{j}t_{nj} = 1 \text{, можем отбросить слагаемые, которые не зависят $k$} \right\} = \\
+                & = \sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left[-\frac{1}{2}\log\det{\frac{\Sigma_k}{z_n}} - \frac{1}{2}(x_n - \mu_k)\Sigma_k^{-1}(x_n - \mu_k) \cdot z_n + (\frac{\nu}{2} - 1) \cdot \log z_n - \frac{\nu}{2} \cdot z_n \right] + const = \\
+                & = \sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left[\left(\frac{D}{2} + \frac{\nu}{2} - 1\right)\cdot \log z_n - \left(\frac{1}{2}(x_n - \mu_k)\Sigma_k^{-1}(x_n - \mu_k) + \frac{\nu}{2}\right) \cdot z_n \right] + const = \\
+                & = \left(\frac{D}{2} + \frac{\nu}{2}\right)\cdot \log z_n +  \sum_{k=1}^{K}\left[- \left(\frac{\mathbb{E}_{q_T(T)}\left[t_{nk}\right]}{2}(x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) + \frac{\nu}{2}\right) \right] \cdot z_n + const
+            \end{align*}
+            \begin{align}
+                \label{al:q_z}
+                q_{Z}(Z) = \prod_{n = 1}^{N} q_{z_n}(z_n) = \prod_{n = 1}^{N}\mathcal{G}\left(z_n \bigg| \frac{D}{2} + \frac{\nu}{2}, \frac{\sum_{k=1}^{K}\left[\mathbb{E}_{q_T(T)}\left[t_{nk}\right](x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) + \nu\right]}{2}\right)
+            \end{align}
+
+    \section{Формулы пересчета параметров $\omega_k, \mu_k, \Sigma_k$ на М-шаге}
+        \begin{align*}
+            &\mathbb{E}_{q(T, Z)}\log p(X, T, Z\mid \omega, \mu, \Sigma_k, \nu) = \\
+            & = \mathbb{E}_{q_Z(Z)q_T(T)}\sum_{n=1}^{N}\sum_{k=1}^{K}t_{nk}\left[\log\omega_k + \log\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{z_n}) + \log\mathcal{G}(z_n\mid \frac{\nu}{2}, \frac{\nu}{2}) \right] =\\
+            & = \sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left[\log\omega_k + \mathbb{E}_{q_Z(Z)}\left(\log\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{z_n}) + \log\mathcal{G}(z_n\mid \frac{\nu}{2}, \frac{\nu}{2})\right) \right] =\\
+            & = \left\{\text{Последнее слагаемое не зависит от $\omega_k, \mu_k, \Sigma_k$}\right\} = \\
+            & = \sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left[\log\omega_k - \frac{1}{2}\log\det{\frac{\Sigma_k}{z_n}} + \mathbb{E}_{q_Z(Z)}\left(- \frac{1}{2}(x_n - \mu_k)\Sigma_k^{-1}(x_n - \mu_k) \cdot z_n \right)\right] =\\
+            & = \sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left[\log\omega_k -\frac{1}{2}\log\det{\Sigma_k} + \mathbb{E}_{q_Z(Z)}\left[z_{n}\right]\left(- \frac{1}{2}(x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) \right)\right]
+        \end{align*}
+
+        \subsection{$\omega_k$}
+            Известно, что $\sum_{k = 1}^{K}\omega_k = 1$. Тогда используя метод Лагранжа:
+            \begin{align*}
+                &\frac{\partial \left[\mathbb{E}_{q_Z(Z)q_T(T)}\log p(X, T, Z\mid \omega, \mu, \Sigma_k, \nu) + \lambda\left(1 - \sum_{k = 1}^{K}\omega_k\right)\right]}{\partial \omega_k} = \\
+                & = \frac{\partial \left[\sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\log\omega_k\right]}{\partial \omega_k} - \lambda \\
+                & = \sum_{n=1}^{N}\frac{\mathbb{E}_{q_T(T)}\left[t_{nk}\right]}{\omega_k} - \lambda = 0
+            \end{align*}
+            \begin{align}
+                \omega_k
+                & = \frac{\sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]}{\lambda} = \frac{\sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]}{\sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]} = \frac{\sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]}{N}
+            \end{align}
+
+        \subsection{$\mu_k$}
+            \begin{align*}
+                &\frac{\partial \left[\sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\mathbb{E}_{q_Z(Z)}\left[z_{n}\right]\left(-\frac{1}{2}(x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) \right)\right]}{\partial \mu_k} =\\
+                & = \sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\mathbb{E}_{q_Z(Z)}\left[z_{n}\right]\frac{\partial \left[x_n^T\Sigma_k^{-1}\mu_k -\frac{1}{2}\mu_k^T\Sigma^{-1}\mu_k\right]}{\partial \mu_k} =\\
+                & = \sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\mathbb{E}_{q_Z(Z)}\left[z_{n}\right]\left[\Sigma_k^{-1}x_n - \Sigma_k^{-1}\mu_k\right] = 0
+            \end{align*}
+            \begin{align}
+                \mu_k & = \frac{\sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\mathbb{E}_{q_Z(Z)}\left[z_{n}\right]x_n}{\sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\mathbb{E}_{q_Z(Z)}\left[z_{n}\right]}
+            \end{align}
+
+        \subsection{$\Sigma_k$}
+            \begin{align*}
+                &\frac{\partial \left[\sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left((-\frac{1}{2}\log\det{\Sigma_k} -\mathbb{E}_{q_Z(Z)}\left[z_{n}\right]\frac{1}{2}(x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) \right)\right]}{\partial \Sigma_k^{-1}} =\\ &=\left\{\frac{\partial  \log\det{\Sigma_k^{-1}}}{\Sigma_k^{-1}} = \Sigma_k\right\} = \\
+                &= \sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left[\frac{1}{2}\Sigma_k - \mathbb{E}_{q_Z(Z)}\left[z_{n}\right]\frac{1}{2}(x_n - \mu_k)(x_n - \mu_k)^T\right] = 0
+            \end{align*}
+            \begin{align}
+                \Sigma_k & =  \frac{\sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\mathbb{E}_{q_Z(Z)}\left[z_{n}\right](x_n - \mu_k)(x_n - \mu_k)^T}{\sum_{n=1}^{N}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]}
+            \end{align}
+
+    \section{Функционал $L(q, \omega_k, \mu_k, \Sigma_k)$}
+        \begin{align*}
+            &L(q, \omega_k, \mu_k, \Sigma_k) = \mathbb{E}_{q(T, Z)}\left[\log\frac{p(X, T, Z\mid \omega_k, \mu_k, \Sigma_k, \nu)}{q(T, Z)}\right] = \\
+            & = \mathbb{E}_{q(T, Z)}\left[\log{p(X, T, Z\mid \omega_k, \mu_k, \Sigma_k, \nu)}\right] - \mathbb{E}_{q(T, Z)}\left[\log{q(T, Z)}\right] = \\
+            & = \sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\left[\log\omega_k + \mathbb{E}_{q_Z(Z)}\left(\log\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{z_n}) + \log\mathcal{G}(z_n\mid \frac{\nu}{2}, \frac{\nu}{2})\right) \right] - \mathbb{E}_{q(T, Z)}\left[\log{q_T(T) +  \log_Z(Z)}\right] =\\
+            & = \sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\bigg[\log\omega_k - \frac{D}{2}\log 2\pi - \frac{1}{2}\log\det{\Sigma_k} + \frac{\nu}{2}\log\frac{\nu}{2} - \log\Gamma\left(\frac{\nu}{2}\right) + \mathbb{E}_{q_Z(Z)}\Big[\frac{D}{2}\log z_{n} -\\
+            & - \frac{1}{2}(x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k)z_n + \left(\frac{\nu}{2} - 1\right)\log z_n - \frac{\nu}{2}z_n\Big]\bigg] - \mathbb{E}_{q_T(T)}\left[\log q_T(T)\right] - \mathbb{E}_{q_Z(Z)}\left[\log q_Z(Z)\right] =\\
+            & = \sum_{n=1}^{N}\sum_{k=1}^{K}\mathbb{E}_{q_T(T)}\left[t_{nk}\right]\Bigg[\log\omega_k - \frac{D}{2}\log 2\pi - \frac{1}{2}\log\det{\Sigma_k} + \frac{\nu}{2}\log\frac{\nu}{2} - \log\Gamma\left(\frac{\nu}{2}\right) +\\
+            & + \mathbb{E}_{q_Z(Z)}\left[z_n\right]\left[- \frac{1}{2}(x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) - \frac{\nu}{2}\right] + \mathbb{E}_{q_Z(Z)}\left[\log z_n\right]\left[\frac{D}{2} + (\frac{\nu}{2} - 1)\right]\Bigg] -\\
+            & -\mathbb{E}_{q_T(T)}\log q_T(T) - \mathbb{E}_{q_Z(Z)}\log q_Z(Z)
+        \end{align*}
+
+    \section{Формулы для статистик распределений}
+        \begin{align*}
+            \mathbb{E}_{q_T(T)}\left[t_{nk}\right] & = q(t_{nk} = 0) \cdot 0 + q(t_{nk} = 1) \cdot 1 = q(t_{nk} = 1) = \frac{\omega_k\mathcal{N}(x_n\mid \mu_k, \frac{\Sigma_k}{\mathbb{E}_{q_Z(Z)}\left[z_n\right]})}{\sum_{l=1}^{K}\omega_l\mathcal{N}(x_n\mid \mu_l, \frac{\Sigma_l}{\mathbb{E}_{q_Z(Z)}\left[z_n\right]})}
+        \end{align*}
+
+        Учитывая ~\ref{al:q_z}:
+        \begin{align*}
+            \mathbb{E}_{q_Z(Z)}\left[z_{n}\right] & = \frac{D + \nu}{\sum_{k=1}^{K}\left[\mathbb{E}_{q_T(T)}\left[t_{nk}\right](x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) + \nu\right]}
+        \end{align*}
+        \begin{align*}
+            \mathbb{E}_{q_Z(Z)}\left[\log z_{n}\right] & = \psi\left(\frac{D + \nu}{2}\right) - \log \frac{\sum_{k=1}^{K}\left[\mathbb{E}_{q_T(T)}\left[t_{nk}\right](x_n - \mu_k)^T\Sigma_k^{-1}(x_n - \mu_k) + \nu\right]}{2}
+        \end{align*}
+
+\end{document}
