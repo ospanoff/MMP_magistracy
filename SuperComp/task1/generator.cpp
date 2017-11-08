@@ -80,7 +80,7 @@ void get_cmd_params(int _argc, char **_argv, int &_scale, int &_avg_degree, stri
     _type = "RMAT";
     _directed = true;
     _weighted = true;
-    _threads = 1;
+    // _threads = 1;
 
     // get params from cmd line
     for (int i = 1; i < _argc; i++)
