@@ -3,18 +3,20 @@ set -e
 
 source params.sh
 
-make
+#make
 
-for TYPE in ${TYPES[@]}
+OUT_PATH=../out
+TYPE=${TYPES[$1]}
+
+echo $TYPE
+
+for P in $(seq $P_min $P_step $P_max)
 do
-    echo $TYPE
-    for P in $(eval echo {$P_min..$P_max..$P_step})
+    FILE_NAME=${DATA_PATH}graph_${TYPE}_$P.bin
+    for N in ${Ns[@]}
     do
-        FILE_NAME=graph_"$TYPE"_$P.bin
-        for N in ${Ns[@]}
-        do
-            echo 'Starting: ' $N $P
-            $MPIRUN -np $N $PROG $FILE_NAME $P 50
-        done
+        OUT_FILE=${P}_${N}_${TYPE}
+        $MPIRUN -n $N --stdout ${OUT_PATH}/${OUT_FILE}.out --stderr ${OUT_PATH}/${OUT_FILE}.err $PROG $FILE_NAME $P 50
+        echo -e ''
     done
 done

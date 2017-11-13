@@ -1,16 +1,17 @@
 #include <boost/graph/distributed/adjacency_list.hpp>
 #include <boost/graph/distributed/mpi_process_group.hpp>
+#include <fstream>
 
 using namespace boost;
 using boost::graph::distributed::mpi_process_group;
 
 typedef adjacency_list<vecS, distributedS<mpi_process_group, vecS>, bidirectionalS,
-/*Vertex properties=*/property<vertex_distance_t, float>,
+/*Vertex properties=*/no_property, //property<vertex_distance_t, float>,
 /*Edge properties=*/property<edge_weight_t, float> >
 Graph;
 
 void read_graph(const std::string &file_name, Graph &g, unsigned int &vertices_count, long long &edges_count) {
-    std::fstream file(file_name, std::ios::in | std::ios::binary);
+    std::fstream file(file_name.c_str(), std::fstream::in | std::fstream::binary);
 
     file.read((char*)(&vertices_count), sizeof(int));
     file.read((char*)(&edges_count), sizeof(long long));

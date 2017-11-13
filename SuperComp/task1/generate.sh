@@ -7,9 +7,10 @@ make generator
 
 for TYPE in ${TYPES[@]}
 do
-    for P in $(eval echo {$P_min..$P_max..$P_step})
+    for P in $(seq $P_min $P_step $P_max)
     do
-        FILE_NAME=graph_"$TYPE"_$P.bin
-        ./generator.out -s $P -directed -weighted -file $FILE_NAME -type $TYPE
+        FILE_NAME=${DATA_PATH}graph_${TYPE}_$P.bin
+        echo Generating $P $TYPE
+        ./generator -s $P -directed -weighted -file $FILE_NAME -type $TYPE
     done
 done

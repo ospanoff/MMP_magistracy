@@ -1,10 +1,14 @@
-HOST_CC=mpic++
-FLAGS=-fopenmp -lboost_system -lboost_mpi -lboost_serialization -lboost_graph_parallel -std=c++11 -O3
+HOST_CC=mpicxx
+
+FLAGS=-O3
+INCLUDES=-I$(HOME)/libs/boost/include
+LIBS=-L$(HOME)/libs/boost/lib -lboost_system -lboost_mpi -lboost_serialization -lboost_graph_parallel
+
 SOURCE=code.cpp
-OUT=run.out
+OUT=run
 
 all:
-	$(HOST_CC) $(FLAGS) -o $(OUT) $(SOURCE)
+	$(HOST_CC) $(FLAGS) $(INCLUDES) -o $(OUT) $(SOURCE) $(LIBS)
 
 generator:
-	g++ generator.cpp -O3 -o generator.out -fopenmp
+	xlc++_r generator.cpp -O3 -o generator -qsmp=omp

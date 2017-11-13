@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <boost/graph/use_mpi.hpp>
 #include <boost/graph/distributed/mpi_process_group.hpp>
 #include <boost/graph/page_rank.hpp>
@@ -18,9 +20,9 @@ int main(int argc, char* argv[]) {
 
     // получение имени входного файла с графом, числа вершин входного графа, а так же количество итераций pagerank
     std::string file_name = argv[1];
-    unsigned int vertices_count = 1U << strtol(argv[2], nullptr, 10);
+    unsigned int vertices_count = 1U << strtol(argv[2], NULL, 10);
     long long edges_count = 0;
-    size_t iters = strtoul(argv[3], nullptr, 10);
+    size_t iters = strtoul(argv[3], NULL, 10);
 
     // Создаем граф с заданным числом вершин
     Graph g(vertices_count);
@@ -42,7 +44,7 @@ int main(int argc, char* argv[]) {
 
     // печатаем производительность с корневого процесса
     if (process_id(process_group(g)) == 0) {
-        std::cout << "Performance: " << edges_count / ((t2 - t1) * 1e6) << " MTEPS" << std::endl;
+        std::cout << "Performance: " << 1.0 * edges_count / ((t2 - t1) * 1e3) << " KTEPS" << std::endl;
         std::cout << "Time: " << t2 - t1 << " seconds" << std::endl;
     }
 
