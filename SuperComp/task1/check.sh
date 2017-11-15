@@ -5,7 +5,6 @@ source params.sh
 
 #make
 
-OUT_PATH=../out
 TYPE=${TYPES[$1]}
 
 echo $TYPE
@@ -15,8 +14,8 @@ do
     FILE_NAME=${DATA_PATH}graph_${TYPE}_$P.bin
     for N in ${Ns[@]}
     do
-        OUT_FILE=${P}_${N}_${TYPE}
-        $MPIRUN -n $N --stdout ${OUT_PATH}/${OUT_FILE}.out --stderr ${OUT_PATH}/${OUT_FILE}.err -w 00:10:00 $PROG -- $FILE_NAME $P
-        echo -e ''
+        ./check ${FILE_NAME}_${P}.mp_res ${FILE_NAME}.st_res
     done
 done
+
+echo 'Pass'

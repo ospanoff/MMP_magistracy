@@ -10,5 +10,12 @@ OUT=run
 all:
 	$(HOST_CC) $(FLAGS) $(INCLUDES) -o $(OUT) $(SOURCE) $(LIBS)
 
+st:
+	g++ $(FLAGS) $(INCLUDES) -o run_st code_st.cpp $(LIBS)
+
 generator:
-	xlc++_r generator.cpp -O3 -o generator -qsmp=omp
+	xlc++_r -qsmp=omp -O3 generator.cpp -o generator
+
+checker:
+	g++ check.cpp -o check
+

@@ -11,6 +11,6 @@ do
     do
         FILE_NAME=${DATA_PATH}graph_${TYPE}_$P.bin
         echo Generating $P $TYPE
-        ./generator -s $P -directed -weighted -file $FILE_NAME -type $TYPE
+        ./generator -s $P -directed -unweighted -file $FILE_NAME -type $TYPE
     done
 done

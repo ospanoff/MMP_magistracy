@@ -5,10 +5,9 @@
 using namespace boost;
 using boost::graph::distributed::mpi_process_group;
 
-typedef adjacency_list<vecS, distributedS<mpi_process_group, vecS>, bidirectionalS,
-/*Vertex properties=*/no_property, //property<vertex_distance_t, float>,
-/*Edge properties=*/property<edge_weight_t, float> >
-Graph;
+typedef adjacency_list<vecS,
+    distributedS<mpi_process_group, vecS>,
+    directedS> Graph;
 
 void read_graph(const std::string &file_name, Graph &g, unsigned int &vertices_count, long long &edges_count) {
     std::fstream file(file_name.c_str(), std::fstream::in | std::fstream::binary);
@@ -24,10 +23,9 @@ void read_graph(const std::string &file_name, Graph &g, unsigned int &vertices_c
         // read i-th edge data
         file.read((char*)(&src_id), sizeof(int));
         file.read((char*)(&dst_id), sizeof(int));
-        file.read((char*)(&weight), sizeof(float));
 
         //print edge data
-        add_edge(vertex(src_id, g), vertex(dst_id, g), weight, g);
+        add_edge(vertex(src_id, g), vertex(dst_id, g), g);
     }
 
     file.close();
