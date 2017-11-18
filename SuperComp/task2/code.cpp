@@ -1,32 +1,38 @@
-#include <mpi.h>
-#include <stdio.h>
+//
+// Created by Ayat ".ospanoff" Ospanov
+//
+
+#include <cstdlib>
 #include <iostream>
 
+#include "ConjugateGradientMethod.h"
+#include "DirichletProblemParams.h"
+
 int main(int argc, char** argv) {
-    MPI_Init(&argc, &argv);
+    try {
+        MPIHelper MPIhelper;
+        MPIhelper.Init(&argc, &argv);
 
-    int processes;
-    MPI_Comm_size(MPI_COMM_WORLD, &processes);
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    char data[1024];
-    MPI_Status status;
-
-    if (rank != 0) {
-        const char *message = "Some message";
-        MPI_Send(message, strlen(message) + 1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-    } else {
-        for (int i = 1; i < processes; i++) {
-            MPI_Recv(&data, 100, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-
-            int data_len;
-            MPI_Get_count(&status, MPI_CHAR, &data_len);
-            data[data_len] = 0;
-
-            printf("Received '%s' from process #%d\n", data, status.MPI_SOURCE);
+        if (argc != 3) {
+            throw CGMException("Usage: dirichlet <grid size by X> <grid size by Y>");
         }
-    }
 
-    MPI_Finalize();
+        int sizeX = static_cast<int>(std::strtol(argv[1], NULL, 10));
+        int sizeY = static_cast<int>(std::strtol(argv[2], NULL, 10));
+
+        DirichletProblemParams dirichlet;
+        ConjugateGradientMethod solver(dirichlet, sizeX, sizeY, MPIhelper);
+        solver.solve();
+        solver.collectResults();
+
+        MPIhelper.Finalize();
+    } catch (std::exception &e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        MPIHelper::Abort(1);
+        return 1;
+    } catch (...) {
+        std::cerr << "Unknown Error!!!" << std::endl;
+        MPIHelper::Abort(2);
+        return 2;
+    }
 }

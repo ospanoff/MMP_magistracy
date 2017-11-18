@@ -1,7 +1,21 @@
-CC=mpic++
-FLAGS=-std=c++11 -Wall
-SOURCE=code.cpp
-OUT=run.out
+CC=mpicxx
+CFLAGS=-g -std=c++98
+LDFLAGS=-fopenmp
+SOURCES=code.cpp MPIHelper.cpp ConjugateGradientMethod.cpp CGMHelper.cpp
+OBJECTS=$(SOURCES:.cpp=.o)
+EXECUTABLE=dirichlet
+ifeq (${OMP},true)
+	CFLAGS += -D"USE_OMP"
+	EXECUTABLE = dirichlet_omp
+endif
 
-all:
-	$(CC) $(FLAGS) -o $(OUT) $(SOURCE)
+all: clean $(SOURCES) $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+
+.cpp.o:
+	$(CC) -c $(CFLAGS) $< -o $@
+
+clean:
+	rm -f $(OBJECTS)
