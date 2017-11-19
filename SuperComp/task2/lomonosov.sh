@@ -1,4 +1,5 @@
 #!/bin/bash
+module add slurm
 module add openmpi/1.8.4-icc
 
 Gs=(1000 2000)
@@ -9,7 +10,12 @@ for N in ${Ns[@]}
 do
     for G in ${Gs[@]}
     do
-        echo sbatch -n $N -p test -o res/${N}_${G}.txt ompi $PROG $G $G
+        sbatch -n ${N} -p test -o ${N}_${G}.txt -t 0-00:05:00 ompi ${PROG} ${G} ${G}
+        while [ $(squeue --user $USER | wc -l) -gt 3 ]
+        do
+            sleep 60
+            echo Checking again...
+        done
     done
 done
 

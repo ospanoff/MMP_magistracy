@@ -16,7 +16,7 @@ public:
         A2 = 2.0;
         B1 = 0.0;
         B2 = 2.0;
-        eps = 0.0001;
+        eps = 1e-4;
     }
     inline double Laplacian(const Func2D &func, const Grid1D &gridX, const Grid1D &gridY, int x, int y) {
         double fr1 = (func(x, y) - func(x - 1, y)) / gridX.step(x - 1);
@@ -37,13 +37,16 @@ public:
     inline double phi(double x, double y) const {
         return 2.0 / (1.0 + x * x + y * y);
     }
+    inline double answer(double x, double y) const {
+        return phi(x, y);
+    }
 
     inline void computeR(const Func2D &p, Func2D &r, const Grid1D &gridX, const Grid1D &gridY) {
 #ifdef USE_OMP
 #pragma omp parallel for
 #endif
-        for (int x = 1; x < r.sizeX - 1; ++x) {
-            for (int y = 1; y < r.sizeY - 1; ++y) {
+        for (int y = 1; y < r.sizeY - 1; ++y) { // 1st iteration by y-axis,
+            for (int x = 1; x < r.sizeX - 1; ++x) { // cause vector is arranged by x-axis
                 r(x, y) = Laplacian(p, gridX, gridY, x, y) - F(gridX[x], gridY[y]);
             }
         }
@@ -53,8 +56,8 @@ public:
 #ifdef USE_OMP
 #pragma omp parallel for
 #endif
-        for (int x = 1; x < g.sizeX - 1; ++x) {
-            for (int y = 1; y < g.sizeY - 1; ++y) {
+        for (int y = 1; y < g.sizeY - 1; ++y) {
+            for (int x = 1; x < g.sizeX - 1; ++x) {
                 g(x, y) = r(x, y) - alpha * g(x, y);
             }
         }
@@ -65,8 +68,8 @@ public:
 #ifdef USE_OMP
 #pragma omp parallel for reduction(+:diff)
 #endif
-        for (int x = 1; x < p.sizeX - 1; ++x) {
-            for (int y = 1; y < p.sizeY - 1; ++y) {
+        for (int y = 1; y < p.sizeY - 1; ++y) {
+            for (int x = 1; x < p.sizeX - 1; ++x) {
                 const double p_diff = tau * g(x, y);
                 diff += p_diff * p_diff * gridX.midStep(x) * gridY.midStep(y);
                 p(x, y) = p(x, y) - p_diff;
@@ -81,8 +84,8 @@ public:
 #ifdef USE_OMP
 #pragma omp parallel for reduction(+:numerator, denominator)
 #endif
-        for (int x = 1; x < g.sizeX - 1; ++x) {
-            for (int y = 1; y < g.sizeY - 1; ++y) {
+        for (int y = 1; y < g.sizeY - 1; ++y) {
+            for (int x = 1; x < g.sizeX - 1; ++x) {
                 const double g_step = g(x, y) * gridX.midStep(x) * gridY.midStep(y);
                 numerator += r(x, y) * g_step;
                 denominator += Laplacian(g, gridX, gridY, x, y) * g_step;
@@ -97,8 +100,8 @@ public:
 #ifdef USE_OMP
 #pragma omp parallel for reduction(+:numerator, denominator)
 #endif
-        for (int x = 1; x < g.sizeX - 1; ++x) {
-            for (int y = 1; y < g.sizeY - 1; ++y) {
+        for (int y = 1; y < g.sizeY - 1; ++y) {
+            for (int x = 1; x < g.sizeX - 1; ++x) {
                 const double g_step = g(x, y) * gridX.midStep(x) * gridY.midStep(y);
                 numerator += Laplacian(r, gridX, gridY, x, y) * g_step;
                 denominator += Laplacian(g, gridX, gridY, x, y) * g_step;

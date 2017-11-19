@@ -21,6 +21,7 @@ public:
 public:
     virtual double F(double x, double y) const = 0;
     virtual double phi(double x, double y) const = 0;
+    virtual double answer(double x, double y) const = 0;
     virtual void computeR(const Func2D &p, Func2D &r, const Grid1D &gridX, const Grid1D &gridY) = 0;
     virtual void computeG(double alpha, const Func2D &r, Func2D &g) = 0;
     virtual double computeP(double tau, const Func2D &g, Func2D &p, const Grid1D &gridX, const Grid1D &gridY) = 0;
@@ -55,6 +56,7 @@ class ConjugateGradientMethod {
 
     int numIter;
     double timeElapsed;
+    double solutionError;
 public:
     ConjugateGradientMethod(Problem &problem, int N_x, int N_y, MPIHelper helper)
             :problem(problem),numOfPointsX(N_x),numOfPointsY(N_y),
@@ -63,6 +65,7 @@ public:
         init();
         diff = std::numeric_limits<double>::max();
         numIter = 0;
+        solutionError = 0.0;
     }
 
     /// MPI set ups

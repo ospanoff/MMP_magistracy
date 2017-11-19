@@ -1,5 +1,5 @@
 CC=mpicxx
-CFLAGS=-g -std=c++98
+CFLAGS=-O2
 LDFLAGS=-fopenmp
 SOURCES=code.cpp MPIHelper.cpp ConjugateGradientMethod.cpp CGMHelper.cpp
 OBJECTS=$(SOURCES:.cpp=.o)

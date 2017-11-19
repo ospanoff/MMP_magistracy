@@ -131,7 +131,7 @@ void ConjugateGradientMethod::collectDouble(double &num) {
 void ConjugateGradientMethod::solve() {
     double start = helper.Time();
     initialStep();
-    while (diff > problem.eps) {
+    while (std::sqrt(diff) > problem.eps) {
         numIter++;
         iteration();
     }
@@ -263,16 +263,24 @@ void ConjugateGradientMethod::collectP() {
             shiftX += recv_sizesX[rX] - 2;
         }
 
+        gridX.init(0, numOfPointsX);
+        gridY.init(0, numOfPointsY);
+
         std::ofstream file;
         std::string fname = "result_" + to_string(helper.numOfProcesses) + "_" + to_string(numOfPointsX) + "_" + to_string(numOfPointsY) + ".p";
         file.open(fname.c_str());
         for (int y = 0; y < p_res.sizeY; ++y) {
             for (int x = 0; x < p_res.sizeX; ++x) {
                 file << p_res(x, y) << " ";
+                if (x != 0 && y != 0 && x != p_res.sizeX - 1 && y != p_res.sizeY - 1) {
+                    double resDiff = p_res(x, y) - problem.answer(gridX[x], gridY[y]);
+                    solutionError += resDiff * resDiff * gridX.midStep(x) * gridY.midStep(y);
+                }
             }
             file << std::endl;
         }
         file.close();
+        solutionError = std::sqrt(solutionError);
     }
 }
 
@@ -288,6 +296,6 @@ void ConjugateGradientMethod::collectResults() {
         printf("Parameters: Grid = (%d, %d); Processes = %d\n",
                numOfPointsX, numOfPointsY, helper.numOfProcesses);
 #endif
-        printf("Elapsed time: %lf s.; Iterations = %d\n", timeElapsed, numIter);
+        printf("Elapsed time: %lf s.; Iterations = %d; Error = %lf\n", timeElapsed, numIter + 1, solutionError);
     }
 }

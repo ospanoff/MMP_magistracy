@@ -17,11 +17,11 @@ int main(int argc, char** argv) {
             throw CGMException("Usage: dirichlet <grid size by X> <grid size by Y>");
         }
 
-        int sizeX = static_cast<int>(std::strtol(argv[1], NULL, 10));
-        int sizeY = static_cast<int>(std::strtol(argv[2], NULL, 10));
+        int gridSizeX = static_cast<int>(std::strtol(argv[1], NULL, 10));
+        int gridSizeY = static_cast<int>(std::strtol(argv[2], NULL, 10));
 
         DirichletProblemParams dirichlet;
-        ConjugateGradientMethod solver(dirichlet, sizeX, sizeY, MPIhelper);
+        ConjugateGradientMethod solver(dirichlet, gridSizeX, gridSizeY, MPIhelper);
         solver.solve();
         solver.collectResults();
 

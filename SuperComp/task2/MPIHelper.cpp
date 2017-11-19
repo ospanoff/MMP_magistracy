@@ -1,6 +1,7 @@
 //
 // Created by ospanoff on 11/13/17.
 //
+
 #include <string>
 
 #include "MPIHelper.h"
@@ -83,7 +84,7 @@ void MPIHelper::Check(const int mpiResult, const char *mpiFunctionName) {
     if (mpiResult != MPI_SUCCESS) {
         char s[1024];
         sprintf(s, "Function '%s' has failed with code %d", mpiFunctionName, mpiResult);
-        throw std::string(s);
+        throw CGMException(s);
     }
 }
 

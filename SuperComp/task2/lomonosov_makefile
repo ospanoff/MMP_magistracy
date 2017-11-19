@@ -5,19 +5,13 @@ SOURCES=code.cpp MPIHelper.cpp ConjugateGradientMethod.cpp CGMHelper.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=dirichlet
 
-all: clean add $(SOURCES) $(EXECUTABLE) rm
+all: clean $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 
 .cpp.o:
 	$(CC) -c $(CFLAGS) $< -o $@
-
-add:
-	module add intel openmpi/1.8.4-icc
-
-rm:
-	module rm intel openmpi/1.8.4-icc
 
 clean:
 	rm -f $(OBJECTS)
