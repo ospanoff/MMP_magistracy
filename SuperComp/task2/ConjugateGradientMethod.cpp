@@ -264,7 +264,7 @@ void ConjugateGradientMethod::collectP() {
         }
 
         std::ofstream file;
-        std::string fname = "result_" + to_string(helper.numOfProcesses) + " " + to_string(numOfPointsX) + " " + to_string(numOfPointsY) + ".p";
+        std::string fname = "result_" + to_string(helper.numOfProcesses) + "_" + to_string(numOfPointsX) + "_" + to_string(numOfPointsY) + ".p";
         file.open(fname.c_str());
         for (int y = 0; y < p_res.sizeY; ++y) {
             for (int x = 0; x < p_res.sizeX; ++x) {

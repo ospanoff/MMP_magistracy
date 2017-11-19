@@ -4,6 +4,7 @@
 #include <string>
 
 #include "MPIHelper.h"
+#include "CGMHelper.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -19,18 +20,20 @@ MPIHelper::MPIHelper() {
 
 void MPIHelper::Init(int *argc, char ***argv) {
     if (initialized) {
-        throw std::string("MPI has already been initialized!!!");
+        throw CGMException("MPI has already been initialized!!!");
     }
     Check(MPI_Init(argc, argv), "MPI_Init");
     Check(MPI_Comm_rank(MPI_COMM_WORLD, &rank), "MPI_Comm_rank");
     Check(MPI_Comm_size(MPI_COMM_WORLD, &numOfProcesses), "MPI_Comm_size");
+#ifdef USE_OMP
     numOfOMPThreads = omp_get_max_threads();
+#endif
     initialized = true;
 }
 
 void MPIHelper::Finalize() {
     if (!initialized) {
-        throw std::string("MPI has not been initialized");
+        throw CGMException("MPI has not been initialized");
     }
     MPI_Finalize();
 }
