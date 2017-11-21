@@ -1,8 +1,5 @@
 #myown
-AMA/*/data
-MOMO/*/data
-NLP/*/data
-BMML/*/*/data
+*/*/data
 !AMA/n2/data
 *.wa
 *.fls
