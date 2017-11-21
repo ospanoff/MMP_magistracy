@@ -1,6 +1,6 @@
 #!/bin/bash
 Gs=(1000 2000)
-Ns=(128 256 512)
+Ns=(1 128 256 512)
 
 PROG=dirichlet
 Env=\"\"
@@ -18,6 +18,11 @@ for N in ${Ns[@]}
 do
     for G in ${Gs[@]}
     do
-        echo mpisubmit.bg -n ${N} -w 00:05:00 --stdout res/${N}_${G}_${MODE}.txt -e ${Env} ${PROG} -- ${G} ${G}
+        if [ "$N" = 1 ]; then
+            T='02:00'
+        else
+            T='00:15'
+        fi
+        echo mpisubmit.bg -n ${N} -w ${T}:00 --stdout res/${N}_${G}_${MODE}.txt -e ${Env} ${PROG} -- ${G} ${G}
     done
 done

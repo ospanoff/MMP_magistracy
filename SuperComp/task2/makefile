@@ -1,7 +1,7 @@
 CC=mpicxx
 CFLAGS=-O3 -fopenmp
 LDFLAGS=-fopenmp
-SOURCES=code.cpp MPIHelper.cpp ConjugateGradientMethod.cpp CGMHelper.cpp
+SOURCES=main.cpp MPIHelper.cpp Grid.cpp Func2D.cpp ConjugateGradientMethod.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=dirichlet
 ifeq (${OMP},true)
@@ -9,7 +9,7 @@ ifeq (${OMP},true)
 	EXECUTABLE = dirichlet_omp
 endif
 
-all: clean $(SOURCES) $(EXECUTABLE)
+all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@

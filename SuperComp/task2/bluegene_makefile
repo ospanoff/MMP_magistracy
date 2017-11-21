@@ -1,7 +1,7 @@
 CC=mpixlcxx
-CFLAGS=-O2
+CFLAGS=-O3
 LDFLAGS=
-SOURCES=code.cpp MPIHelper.cpp ConjugateGradientMethod.cpp CGMHelper.cpp
+SOURCES=main.cpp MPIHelper.cpp Grid.cpp Func2D.cpp ConjugateGradientMethod.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=dirichlet
 ifeq (${OMP},true)
