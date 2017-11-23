@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     mpi::environment env(argc,argv);
     boost::mpi::communicator world;
 
-    // получение имени входного файла с графом, числа вершин входного графа
+    // Получение имени входного файла с графом и числа вершин входного графа
     std::string file_name = argv[1];
     unsigned int vertices_count = 1U << strtol(argv[2], NULL, 10);
     long long edges_count = 0;
@@ -28,23 +28,26 @@ int main(int argc, char* argv[]) {
     // Создаем граф с заданным числом вершин
     Graph g(vertices_count);
 
-    // читаем граф на корневом процессе
+    // Читаем граф на корневом процессе
     if (process_id(process_group(g)) == 0) {
         read_graph(file_name, g, vertices_count, edges_count);
     }
 
-    // считаем PageRank с замером времени выполнения
+    // Считаем PageRank с замером времени выполнения
     std::vector<double> ranks(num_vertices(g));
 
     double t1 = MPI_Wtime();
     MPI_Barrier(MPI_COMM_WORLD);
-    graph::page_rank(g, make_iterator_property_map(ranks.begin(), get(vertex_index, g)));
+    graph::page_rank(g, make_iterator_property_map(
+            ranks.begin(), get(vertex_index, g)));
     MPI_Barrier(MPI_COMM_WORLD);
     double t2 = MPI_Wtime();
 
-    // печатаем производительность с корневого процесса
+    // Печатаем производительность с корневого процесса
+    // и собираем со всех процессов результаты и сохраняем
     if (process_id(process_group(g)) == 0) {
-        std::cout << "Performance: " << 1.0 * edges_count / ((t2 - t1) * 1e3) << " KTEPS" << std::endl;
+        std::cout << "Performance: " << 1.0 * edges_count / ((t2 - t1) * 1e3)
+                  << " KTEPS" << std::endl;
         std::cout << "Time: " << t2 - t1 << " seconds" << std::endl;
 
         std::vector<std::vector<double> > all_ranks;
@@ -53,7 +56,8 @@ int main(int argc, char* argv[]) {
 
         std::vector<std::string> strs;
         split(strs, file_name, is_any_of("/"));
-        std::string fname = "../res/" + strs[strs.size()-1] + "_" + lexical_cast<std::string>(process_group(g).size) + ".mp_res";
+        std::string fname = "../res/" + strs[strs.size()-1] + "_" +
+                lexical_cast<std::string>(process_group(g).size) + ".mp_res";
         std::ofstream out_file;
 
         int size = 0;

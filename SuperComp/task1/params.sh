@@ -9,7 +9,7 @@ P_step=1
 Ns=(1 2 4 8 16 32 64 128)
 
 # Types of graphs
-TYPES=('RMAT' 'SSCA2')
+TYPES=("RMAT" "SSCA2")
 
 DATA_PATH=../data/
 

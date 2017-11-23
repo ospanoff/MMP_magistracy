@@ -51,10 +51,8 @@ int main(int argc, char* argv[]) {
     // считаем PageRank с замером времени выполнения
     std::vector<double> ranks(num_vertices(g));
 
-    int iters=20;
-
-    page_rank(g, make_iterator_property_map(ranks.begin(), get(vertex_index, g)),
-              graph::n_iterations(iters), 0.85, vertices_count);
+    graph::page_rank(g, make_iterator_property_map(
+            ranks.begin(), get(vertex_index, g)));
 
     std::vector<std::string> strs;
     split(strs, file_name, is_any_of("/"));
