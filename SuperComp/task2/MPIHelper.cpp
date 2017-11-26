@@ -44,12 +44,6 @@ bool MPIHelper::isMaster() const {
     return (coords[0] == 0) && (coords[1] == 0);
 }
 
-int MPIHelper::getRank() const {
-    int rank;
-    Check(MPI_Cart_rank(comm, coords, &rank), "MPI_Cart_rank");
-    return rank;
-}
-
 int MPIHelper::getRank(int rankX, int rankY) const {
     int rank;
     int crds[] = { rankX, rankY };

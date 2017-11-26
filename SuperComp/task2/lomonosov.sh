@@ -3,7 +3,7 @@ module add slurm
 module add openmpi
 
 Gs=(1000 2000)
-Ns=(1 8 16 32 64 128)
+Ns=(8 16 32 64 128 1)
 PROG=dirichlet
 
 for N in ${Ns[@]}

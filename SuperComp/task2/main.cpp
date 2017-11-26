@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
         unsigned int gridSizeY = static_cast<unsigned int>(std::strtol(argv[2], NULL, 10));
 
         Grid grid = Grid::getGrid(DirichletProblem::getBorders(), gridSizeX, gridSizeY);
-        ConjugateGradientMethod solver(grid, DirichletProblem::F, DirichletProblem::phi, 1e-4, false, DirichletProblem::answer);
+        ConjugateGradientMethod solver(grid, DirichletProblem::F, DirichletProblem::phi, false, DirichletProblem::answer);
         solver.solve();
         solver.collectResults();
 

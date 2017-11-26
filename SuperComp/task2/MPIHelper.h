@@ -30,7 +30,6 @@ public:
 
     MPI_Comm getComm() const;
 
-    int getRank() const;
     int getRank(int rankX, int rankY) const;
     int getRankX() const;
     int getRankY() const;

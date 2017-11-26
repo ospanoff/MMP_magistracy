@@ -12,8 +12,6 @@
 
 class ConjugateGradientMethod {
     Func2D p, r, g, F, diff;
-    double eps;
-    double diffNorm;
     mathFunction trueAnswer;
 
     bool display;
@@ -21,14 +19,17 @@ class ConjugateGradientMethod {
     std::vector<Exchanger> communicatingEdges;
 
     int numIters;
+    int maxIters;
+    double eps;
+    double diffNorm;
     double timeElapsed;
     double solutionError;
 
     double tau(const Func2D &f, const Func2D &g) const;
     double alpha(const Func2D &f, const Func2D &g) const;
 public:
-    ConjugateGradientMethod(Grid grid, mathFunction f, mathFunction phi,
-                            double eps, bool display, mathFunction answer=zero);
+    ConjugateGradientMethod(Grid grid, mathFunction f, mathFunction phi, bool display,
+                                mathFunction answer=zero, int maxIters=1500, double eps=1e-4);
     void solve();
     void initialStep();
     void iteration();

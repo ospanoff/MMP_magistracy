@@ -18,10 +18,12 @@ double ConjugateGradientMethod::alpha(const Func2D &f, const Func2D &g) const {
     return (~f * g) / (~g * g);
 }
 
-ConjugateGradientMethod::ConjugateGradientMethod(Grid grid, mathFunction f, mathFunction phi, double eps, bool display, mathFunction answer)
+ConjugateGradientMethod::ConjugateGradientMethod(Grid grid, mathFunction f, mathFunction phi, bool display,
+                                                 mathFunction answer, int maxIters, double eps)
         :p(Func2D(grid)),r(Func2D(grid)),g(Func2D(grid)),
          F(Func2D(grid, f)),diff(Func2D(grid, infty)),
-         eps(eps),display(display),trueAnswer(answer)
+         eps(eps),display(display),trueAnswer(answer),
+         maxIters(maxIters),numIters(1),solutionError(0)
 {
     MPIHelper &helper = MPIHelper::getInstance();
 
@@ -80,7 +82,6 @@ ConjugateGradientMethod::ConjugateGradientMethod(Grid grid, mathFunction f, math
 
 void ConjugateGradientMethod::initialStep() {
     /// Compute r0
-
     r = ~p - F;
     r.synchronize(communicatingEdges);
 
@@ -117,9 +118,8 @@ void ConjugateGradientMethod::solve() {
     MPIHelper &helper = MPIHelper::getInstance();
     double start = helper.time();
 
-    numIters = 1;
     initialStep();
-    while (diffNorm > eps) {
+    while (diffNorm > eps && numIters < maxIters) {
         iteration();
         ++numIters;
         if (display) {
