@@ -18,7 +18,11 @@ Func2D::Func2D(const Grid &grid, mathFunction func)
     for (unsigned int i = 0; i < grid.x.size(); ++i) {
         f[i] = new double[grid.y.size()];
         for (unsigned int j = 0; j < grid.y.size(); ++j) {
-            f[i][j] = func(grid.x[i], grid.y[j]);
+            if (i != 0 && j != 0 && i != grid.x.size() - 1 && j != grid.y.size() - 1) {
+                f[i][j] = func(grid.x[i], grid.y[j]);
+            } else {
+                f[i][j] = 0;
+            }
         }
     }
 }

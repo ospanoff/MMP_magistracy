@@ -20,8 +20,8 @@ double ConjugateGradientMethod::alpha(const Func2D &f, const Func2D &g) const {
 
 ConjugateGradientMethod::ConjugateGradientMethod(Grid grid, mathFunction f, mathFunction phi, bool display,
                                                  mathFunction answer, int maxIters, double eps)
-        :p(Func2D(grid)),r(Func2D(grid)),g(Func2D(grid)),
-         F(Func2D(grid, f)),diff(Func2D(grid, infty)),
+        :p(grid),r(grid),g(grid),
+         F(grid, f),diff(grid, infty),
          eps(eps),display(display),trueAnswer(answer),
          maxIters(maxIters),numIters(1),solutionError(0)
 {
