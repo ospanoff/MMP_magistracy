@@ -15,9 +15,9 @@ class ConjugateGradientMethod {
     mathFunction trueAnswer;
 
     bool display;
-
+public:
     std::vector<Exchanger> communicatingEdges;
-
+private:
     int numIters;
     int maxIters;
     double eps;

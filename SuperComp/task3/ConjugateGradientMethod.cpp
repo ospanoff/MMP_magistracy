@@ -20,67 +20,52 @@ double ConjugateGradientMethod::alpha(const Func2D &f, const Func2D &g) const {
 
 ConjugateGradientMethod::ConjugateGradientMethod(Grid grid, mathFunction f, mathFunction phi, bool display,
                                                  mathFunction answer, int maxIters, double eps)
-        :p(Func2D(grid)),r(Func2D(grid)),g(Func2D(grid)),
-         F(Func2D(grid, f)),diff(Func2D(grid, infty)),
-         eps(eps),display(display),trueAnswer(answer),
-         maxIters(maxIters),numIters(1),solutionError(0)
+        :p(grid, phi, Func2D::initOuterBorder),r(grid),g(grid),
+         F(grid, f),diff(grid, infty),
+         eps(eps), display(display), trueAnswer(answer),
+         maxIters(maxIters), numIters(1), solutionError(0)
 {
     MPIHelper &helper = MPIHelper::getInstance();
 
-    /// Compute p0 and init border exchangers
-//    if (!helper.hasLeftNeighbour()) {
-//        for (unsigned int j = 0; j < p.sizeY(); ++j) {
-//            p(0, j) = phi(grid.x[0], grid.y[j]);
-//        }
-//    } else {
-//        communicatingEdges.push_back(
-//                Exchanger(helper.getRank(helper.getRankX() - 1, helper.getRankY()),
-//                          EdgeIndexer(EdgeIndexer::ByX, 1, grid.y.size()),
-//                          EdgeIndexer(EdgeIndexer::ByX, 0, grid.y.size())
-//                )
-//        );
-//    }
-//    if (!helper.hasRightNeighbour()) {
-//        unsigned int right = p.sizeX() - 1;
-//        for (unsigned int j = 0; j < p.sizeY(); ++j) {
-//            p(right, j) = phi(grid.x[right], grid.y[j]);
-//        }
-//    } else {
-//        communicatingEdges.push_back(
-//                Exchanger(helper.getRank(helper.getRankX() + 1, helper.getRankY()),
-//                          EdgeIndexer(EdgeIndexer::ByX, grid.x.size() - 2, grid.y.size()),
-//                          EdgeIndexer(EdgeIndexer::ByX, grid.x.size() - 1, grid.y.size())
-//                )
-//        );
-//    }
-//    if (!helper.hasTopNeighbour()) {
-//        for (unsigned int i = 0; i < p.sizeX(); ++i) {
-//            p(i, 0) = phi(grid.x[i], grid.y[0]);
-//        }
-//    } else {
-//        communicatingEdges.push_back(
-//                Exchanger(helper.getRank(helper.getRankX(), helper.getRankY() - 1),
-//                          EdgeIndexer(EdgeIndexer::ByY, 1, grid.x.size()),
-//                          EdgeIndexer(EdgeIndexer::ByY, 0, grid.x.size())
-//                )
-//        );
-//    }
-//    if (!helper.hasBottomNeighbour()) {
-//        unsigned int bottom = p.sizeY() - 1;
-//        for (unsigned int i = 0; i < p.sizeX(); ++i) {
-//            p(i, bottom) = phi(grid.x[i], grid.y[bottom]);
-//        }
-//    } else {
-//        communicatingEdges.push_back(
-//                Exchanger(helper.getRank(helper.getRankX(), helper.getRankY() + 1),
-//                          EdgeIndexer(EdgeIndexer::ByY, grid.y.size() - 2, grid.x.size()),
-//                          EdgeIndexer(EdgeIndexer::ByY, grid.y.size() - 1, grid.x.size())
-//                )
-//        );
-//    }
+    /// init border exchangers
+    if (helper.hasLeftNeighbour()) {
+        communicatingEdges.push_back(
+                Exchanger(helper.getRank(helper.getRankX() - 1, helper.getRankY()),
+                          EdgeIndexer(EdgeIndexer::ByX, 1, grid.y.size()),
+                          EdgeIndexer(EdgeIndexer::ByX, 0, grid.y.size())
+                )
+        );
+    }
+    if (helper.hasRightNeighbour()) {
+        communicatingEdges.push_back(
+                Exchanger(helper.getRank(helper.getRankX() + 1, helper.getRankY()),
+                          EdgeIndexer(EdgeIndexer::ByX, grid.x.size() - 2, grid.y.size()),
+                          EdgeIndexer(EdgeIndexer::ByX, grid.x.size() - 1, grid.y.size())
+                )
+        );
+    }
+    if (helper.hasTopNeighbour()) {
+        communicatingEdges.push_back(
+                Exchanger(helper.getRank(helper.getRankX(), helper.getRankY() - 1),
+                          EdgeIndexer(EdgeIndexer::ByY, 1, grid.x.size()),
+                          EdgeIndexer(EdgeIndexer::ByY, 0, grid.x.size())
+                )
+        );
+    }
+    if (helper.hasBottomNeighbour()) {
+        communicatingEdges.push_back(
+                Exchanger(helper.getRank(helper.getRankX(), helper.getRankY() + 1),
+                          EdgeIndexer(EdgeIndexer::ByY, grid.y.size() - 2, grid.x.size()),
+                          EdgeIndexer(EdgeIndexer::ByY, grid.y.size() - 1, grid.x.size())
+                )
+        );
+    }
 }
 
 void ConjugateGradientMethod::initialStep() {
+    /// Compute p0
+    /// in constructor
+
     /// Compute r0
     r = ~p - F;
     r.synchronize(communicatingEdges);
@@ -174,7 +159,10 @@ void ConjugateGradientMethod::collectP() {
     if (helper.isMaster()) {
         Grid grid(p.grid.borders, Rect<unsigned int>(0, p.grid.numOfPointsX, 0, p.grid.numOfPointsY),
                   p.grid.numOfPointsX, p.grid.numOfPointsY);
-        Func2D p_res(grid);
+        double **p_res = new double*[grid.x.size()];
+        for (int i = 0; i < grid.x.size(); ++i) {
+            p_res[i] = new double[grid.y.size()];
+        }
 
         int shiftX = 0;
         for (int rX = 0; rX < helper.getNumOfProcsX(); ++rX) {
@@ -190,7 +178,7 @@ void ConjugateGradientMethod::collectP() {
                                 (x != 0 && y != 0 && x != recvSizesX[rank] - 1 && y != recvSizesY[rank] - 1) || /// Don't write all edges
                                 (pX == 0 || pX == grid.numOfPointsX - 1 || pY == 0 || pY == grid.numOfPointsY - 1) /// write only outer edges
                                 )
-//                            p_res(pX, pY) = *it;
+                            p_res[pX][pY] = *it;
                         it++;
                     }
                 }
@@ -203,11 +191,11 @@ void ConjugateGradientMethod::collectP() {
         char fname[1024];
         sprintf(fname, "result_%d_%d_%d.p", helper.getNumOfProcs(), grid.numOfPointsX, grid.numOfPointsY);
         file.open(fname);
-        for (unsigned int y = 0; y < p_res.sizeY(); ++y) {
-            for (unsigned int x = 0; x < p_res.sizeX(); ++x) {
-                file << p_res(x, y) << " ";
-                if (x != 0 && y != 0 && x != p_res.sizeX() - 1 && y != p_res.sizeY() - 1) {
-                    double resDiff = p_res(x, y) - trueAnswer(grid.x[x], grid.y[y]);
+        for (unsigned int y = 0; y < grid.y.size(); ++y) {
+            for (unsigned int x = 0; x < grid.x.size(); ++x) {
+                file << p_res[x][y] << " ";
+                if (x != 0 && y != 0 && x != grid.x.size() - 1 && y != grid.y.size() - 1) {
+                    double resDiff = p_res[x][y] - trueAnswer(grid.x[x], grid.y[y]);
                     solutionError += resDiff * resDiff * grid.x.getMidStep(x) * grid.y.getMidStep(y);
                 }
             }
@@ -215,6 +203,11 @@ void ConjugateGradientMethod::collectP() {
         }
         file.close();
         solutionError = std::sqrt(solutionError);
+
+        for (int i = 0; i < grid.x.size(); ++i) {
+            delete[] p_res[i];
+        }
+        delete[] p_res;
     }
 }
 

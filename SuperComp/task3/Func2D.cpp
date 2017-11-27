@@ -8,7 +8,7 @@
 #include "MPIHelper.h"
 
 
-Func2D::Func2D(const Grid &grid, mathFunction func)
+Func2D::Func2D(const Grid &grid, mathFunction func, int initType)
         :grid(grid)
 {
 
@@ -17,17 +17,53 @@ Func2D::Func2D(const Grid &grid, mathFunction func)
     pitchDouble = pitch / sizeof(double);
     fDev = thrust::device_pointer_cast(fRaw);
 
-    double *f = new double[grid.y.size() * pitchDouble];
-    for (unsigned int i = 0; i < grid.x.size(); ++i) {
-        for (unsigned int j = 0; j < grid.y.size(); ++j) {
-            f[j * pitchDouble + i] = func(grid.x[i], grid.y[j]);
+    pitchVecSize = grid.y.size() * pitchDouble;
+
+    double *f = new double[pitchVecSize];
+    std::fill(f, f + pitchVecSize, 0.);
+    switch (initType) {
+        case initAll: // shift = 0
+        case initInner: { // shift = 1
+            unsigned int shift = static_cast<unsigned int>(initType);
+            for (unsigned int i = shift; i < grid.x.size() - shift; ++i) {
+                for (unsigned int j = shift; j < grid.y.size() - shift; ++j) {
+                    f[j * pitchDouble + i] = func(grid.x[i], grid.y[j]);
+                }
+            }
+            break;
         }
+        case initOuterBorder:
+            MPIHelper &helper = MPIHelper::getInstance();
+            if (!helper.hasLeftNeighbour()) {
+                for (unsigned int j = 0; j < grid.y.size(); ++j) {
+                    f[j * pitchDouble] = func(grid.x[0], grid.y[j]);
+                }
+            }
+            if (!helper.hasRightNeighbour()) {
+                unsigned int right = grid.x.size() - 1;
+                for (unsigned int j = 0; j < grid.y.size(); ++j) {
+                    f[j * pitchDouble + right] = func(grid.x[right], grid.y[j]);
+                }
+            }
+            if (!helper.hasTopNeighbour()) {
+                for (unsigned int i = 0; i < grid.x.size(); ++i) {
+                    f[i] = func(grid.x[i], grid.y[0]);
+                }
+            }
+            if (!helper.hasBottomNeighbour()) {
+                unsigned int bottom = grid.y.size() - 1;
+                for (unsigned int i = 0; i < grid.x.size(); ++i) {
+                    f[bottom * pitchDouble + i] = func(grid.x[i], grid.y[bottom]);
+                }
+            }
+            break;
     }
     CUDA_SAFE_CALL(cudaMemcpy2D(fRaw, pitch, f, pitch, grid.x.size() * sizeof(double), grid.y.size(), cudaMemcpyHostToDevice));
+    delete[] f;
 }
 
 Func2D::~Func2D() {
-    cudaFree(fRaw);
+    CUDA_SAFE_CALL(cudaFree(fRaw));
 }
 
 unsigned int Func2D::sizeX() const {
@@ -72,11 +108,10 @@ struct gridMul {
 };
 
 double Func2D::operator*(const Func2D &func) const {
-    unsigned long size = grid.y.size() * pitchDouble;
     thrust::counting_iterator<unsigned long> iter(0);
     double mul = thrust::inner_product(
             thrust::make_zip_iterator(thrust::make_tuple(fDev, iter)),
-            thrust::make_zip_iterator(thrust::make_tuple(fDev + size, iter + size)),
+            thrust::make_zip_iterator(thrust::make_tuple(fDev + pitchVecSize, iter + pitchVecSize)),
             func.fDev,
             0.,
             thrust::plus<double>(),
@@ -88,10 +123,9 @@ double Func2D::operator*(const Func2D &func) const {
 
 Func2D Func2D::operator*(double x) const {
     Func2D mul(grid);
-    unsigned long size = grid.y.size() * pitchDouble;
     thrust::transform(
         fDev,
-        fDev + size,
+        fDev + pitchVecSize,
         mul.fDev,
         thrust::placeholders::_1 * x
     );
@@ -100,10 +134,9 @@ Func2D Func2D::operator*(double x) const {
 
 Func2D Func2D::operator-(const Func2D &func) const {
     Func2D diff(grid);
-    unsigned long size = grid.y.size() * pitchDouble;
     thrust::transform(
         fDev,
-        fDev + size,
+        fDev + pitchVecSize,
         func.fDev,
         diff.fDev,
         thrust::minus<double>()
@@ -112,10 +145,9 @@ Func2D Func2D::operator-(const Func2D &func) const {
 }
 
 Func2D &Func2D::operator-=(const Func2D &func) {
-    unsigned long size = grid.y.size() * pitchDouble;
     thrust::transform(
         fDev,
-        fDev + size,
+        fDev + pitchVecSize,
         func.fDev,
         fDev,
         thrust::minus<double>()
@@ -143,52 +175,68 @@ void gridLaplacianKernel(double *dest, double *src, const double *midStepX, cons
 
 Func2D Func2D::operator~() const {
     Func2D laplace(grid);
-    dim3 blockDim(32, 32);
+    dim3 blockDim(16, 16);
     dim3 gridDim((grid.x.size() - 1) / blockDim.x + 1, (grid.y.size() - 1) / blockDim.y + 1);
     gridLaplacianKernel<<<gridDim, blockDim>>>(laplace.fRaw, fRaw, grid.x.getMidStepPtr(), grid.y.getMidStepPtr(),
                                           grid.x.getStepPtr(), grid.y.getStepPtr(),
                                           pitch, grid.x.size(), grid.y.size());
-    cudaDeviceSynchronize();
+    CUDA_SAFE_CALL(cudaGetLastError());
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
     return laplace;
 }
 
 Func2D &Func2D::operator=(const Func2D &func) {
-    cudaMemcpy2D(fRaw, pitch, func.fRaw, func.pitch, grid.x.size() * sizeof(double), grid.y.size(), cudaMemcpyDeviceToDevice);
+    CUDA_SAFE_CALL(cudaMemcpy2D(fRaw, pitch, func.fRaw, func.pitch, grid.x.size() * sizeof(double), grid.y.size(), cudaMemcpyDeviceToDevice));
     return *this;
 }
 
-void Func2D::synchronize(std::vector<Exchanger> communicatingEdges) {
-//    for (std::vector<Exchanger>::iterator it = communicatingEdges.begin(); it != communicatingEdges.end(); ++it) {
-//        exchange(*it);
-//    }
-//    for (std::vector<Exchanger>::iterator it = communicatingEdges.begin(); it != communicatingEdges.end(); ++it) {
-//        wait(*it);
-//    }
+void Func2D::synchronize(std::vector<Exchanger> &communicatingEdges) {
+    double *f = new double[pitchVecSize];
+    CUDA_SAFE_CALL(cudaMemcpy2D(f, pitch, fRaw, pitch, grid.x.size() * sizeof(double), grid.y.size(), cudaMemcpyDeviceToHost));
+
+    for (std::vector<Exchanger>::iterator it = communicatingEdges.begin(); it != communicatingEdges.end(); ++it) {
+        exchange(*it, f);
+    }
+    for (std::vector<Exchanger>::iterator it = communicatingEdges.begin(); it != communicatingEdges.end(); ++it) {
+        wait(*it, f);
+    }
+
+    CUDA_SAFE_CALL(cudaMemcpy2D(fRaw, pitch, f, pitch, grid.x.size() * sizeof(double), grid.y.size(), cudaMemcpyHostToDevice));
+    delete[] f;
 }
 
-void Func2D::exchange(Exchanger &exchanger) {
-//    MPIHelper &helper = MPIHelper::getInstance();
-//    exchanger.sendData.clear();
-//    for (int i = exchanger.sendPart.startX; i < exchanger.sendPart.endX; ++i) {
-//        for (int j = exchanger.sendPart.startY; j < exchanger.sendPart.endY; ++j) {
-//            exchanger.sendData.push_back(f[i][j]);
-//        }
-//    }
-//
-//    helper.Isend(exchanger.sendData, exchanger.exchangeRank, exchanger.sendReq);
-//    helper.Irecv(exchanger.recvData, exchanger.exchangeRank, exchanger.recvReq);
+void Func2D::exchange(Exchanger &exchanger, double *f) {
+    MPIHelper &helper = MPIHelper::getInstance();
+    exchanger.sendData.clear();
+    for (int i = exchanger.sendPart.startX; i < exchanger.sendPart.endX; ++i) {
+        for (int j = exchanger.sendPart.startY; j < exchanger.sendPart.endY; ++j) {
+            exchanger.sendData.push_back(f[j * pitchDouble + i]);
+        }
+    }
+
+    helper.Isend(exchanger.sendData, exchanger.exchangeRank, exchanger.sendReq);
+    helper.Irecv(exchanger.recvData, exchanger.exchangeRank, exchanger.recvReq);
 }
 
-void Func2D::wait(Exchanger &exchanger) {
-//    MPIHelper &helper = MPIHelper::getInstance();
-//    helper.Wait(exchanger.recvReq);
-//
-//    std::vector<double>::const_iterator value = exchanger.recvData.begin();
-//    for (int i = exchanger.recvPart.startX; i < exchanger.recvPart.endX; ++i) {
-//        for (int j = exchanger.recvPart.startY; j < exchanger.recvPart.endY; ++j) {
-//            f[i][j] = *(value++);
-//        }
-//    }
-//
-//    helper.Wait(exchanger.sendReq);
+void Func2D::wait(Exchanger &exchanger, double *f) {
+    MPIHelper &helper = MPIHelper::getInstance();
+    helper.Wait(exchanger.recvReq);
+
+    std::vector<double>::const_iterator value = exchanger.recvData.begin();
+    for (int i = exchanger.recvPart.startX; i < exchanger.recvPart.endX; ++i) {
+        for (int j = exchanger.recvPart.startY; j < exchanger.recvPart.endY; ++j) {
+            f[j * pitchDouble + i] = *(value++);
+        }
+    }
+
+    helper.Wait(exchanger.sendReq);
+}
+
+void Func2D::print() {
+    for (int j = 0; j < grid.y.size(); ++j) {
+        for (int i = 0; i < grid.x.size(); ++i) {
+            std::cout << fDev[j * pitchDouble + i] << " ";
+        }
+        std::cout << std::endl;
+    }
 }

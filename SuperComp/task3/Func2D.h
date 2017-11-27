@@ -46,9 +46,15 @@ public:
     thrust::device_ptr<double> fDev;
     unsigned long pitch;
     unsigned long pitchDouble;
+    unsigned long pitchVecSize;
 
 public:
-    explicit Func2D(const Grid &grid, mathFunction func=zero);
+    enum {
+        initAll,
+        initInner,
+        initOuterBorder
+    };
+    explicit Func2D(const Grid &grid, mathFunction func=zero, int initType=initInner);
     ~Func2D();
 
     unsigned int sizeX() const;
@@ -64,9 +70,11 @@ public:
     Func2D &operator-=(const Func2D &func);
     Func2D &operator=(const Func2D &func);
 
-    void synchronize(std::vector<Exchanger> communicatingEdges);
-    void exchange(Exchanger &);
-    void wait(Exchanger &);
+    void synchronize(std::vector<Exchanger> &communicatingEdges);
+    void exchange(Exchanger &, double *f);
+    void wait(Exchanger &, double *f);
+
+    void print();
 
 };
 

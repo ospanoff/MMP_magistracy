@@ -20,23 +20,15 @@ int main(int argc, char *argv[]) {
         unsigned int gridSizeX = static_cast<unsigned int>(std::strtol(argv[1], NULL, 10));
         unsigned int gridSizeY = static_cast<unsigned int>(std::strtol(argv[2], NULL, 10));
 
+        int numDevices = -1;
+        CUDA_SAFE_CALL(cudaGetDeviceCount(&numDevices));
+        CUDA_SAFE_CALL(cudaSetDevice(helper.getRank(helper.getRankX(), helper.getRankY()) % numDevices));
+
         Grid grid = Grid::getGrid(DirichletProblem::getBorders(), gridSizeX, gridSizeY);
-        Func2D f(grid, DirichletProblem::F);
 
-        double res = ~f * ~f;
-        if (helper.isMaster()) {
-            std::cout << res << std::endl;
-        }
-
-//        for (int i = 0; i < grid.x.size(); ++i) {
-//            for (int j = 0; j < grid.y.size(); ++j) {
-//                std::cout << f(i, j) << " ";
-//            }
-//            std::cout << std::endl;
-//        }
-//        ConjugateGradientMethod solver(grid, DirichletProblem::F, DirichletProblem::phi, false, DirichletProblem::answer);
-//        solver.solve();
-//        solver.collectResults();
+        ConjugateGradientMethod solver(grid, DirichletProblem::F, DirichletProblem::phi, false, DirichletProblem::answer);
+        solver.solve();
+        solver.collectResults();
 
         helper.finalize();
     } catch (std::string &e) {

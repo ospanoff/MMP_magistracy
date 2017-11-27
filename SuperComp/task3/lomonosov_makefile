@@ -1,13 +1,13 @@
 CUDA_CC=nvcc
-CUDA_ARCH=sm_35
+CUDA_ARCH=sm_20
 
 HOST_CC=mpicxx
-CFLAGS=-O3 -Xcompiler "-std=c++98"
+CFLAGS=-O3
 LDFLAGS=
 SOURCES=main.cpp MPIHelper.cpp Grid.cpp Func2D.cpp ConjugateGradientMethod.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 
-EXECUTABLE=dirichlet
+EXECUTABLE=dirichlet_cuda
 
 all: $(SOURCES) $(EXECUTABLE)
 
