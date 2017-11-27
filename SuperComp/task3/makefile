@@ -1,0 +1,21 @@
+CUDA_CC=nvcc
+CUDA_ARCH=sm_35
+
+HOST_CC=mpicxx
+CFLAGS=-O3
+LDFLAGS=
+SOURCES=main.cpp MPIHelper.cpp Grid.cpp Func2D.cpp ConjugateGradientMethod.cpp
+OBJECTS=$(SOURCES:.cpp=.o)
+
+EXECUTABLE=dirichlet
+
+all: $(SOURCES) $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CUDA_CC) -ccbin $(HOST_CC) $(OBJECTS) $(LDFLAGS) -o $@
+
+.cpp.o:
+	$(CUDA_CC) -c -x cu -arch=$(CUDA_ARCH) -ccbin $(HOST_CC) $(CFLAGS) $< -o $@
+
+clean:
+	rm -f $(OBJECTS)

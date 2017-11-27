@@ -13,8 +13,8 @@ CMakeLists.txt
 .idea
 *.bin
 BMML/bmml
-SuperComp/task2/*.p
-SuperComp/task2/dirichlet*
+SuperComp/*/*.p
+SuperComp/*/dirichlet*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
