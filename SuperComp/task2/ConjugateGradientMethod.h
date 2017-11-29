@@ -29,7 +29,7 @@ class ConjugateGradientMethod {
     double alpha(const Func2D &f, const Func2D &g) const;
 public:
     ConjugateGradientMethod(Grid grid, mathFunction f, mathFunction phi, bool display,
-                                mathFunction answer=zero, int maxIters=1500, double eps=1e-4);
+                                mathFunction answer=zero, int maxIters=5000, double eps=1e-4);
     void solve();
     void initialStep();
     void iteration();
