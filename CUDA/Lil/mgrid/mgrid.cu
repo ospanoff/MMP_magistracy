@@ -1,7 +1,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
-#include <chrono>
+#include <ctime>
 
 #include <cuda_runtime.h>
 #include <thrust/reduce.h>
@@ -20,7 +20,7 @@ do {\
 } while (false)\
 
 FILE *in;
-int TRACE = 1;
+int TRACE = 0;
 double EPS;
 int     M, N, K, ITMAX;
 double  MAXEPS = 0.01;
@@ -67,18 +67,18 @@ int main(int an, char **as)
 
     CUDA_SAFE_CALL(cudaMalloc(&A_GPU, M*N*K * sizeof(double)));
     CUDA_SAFE_CALL(cudaMalloc(&diff, M*N*K * sizeof(double)));
+    CUDA_SAFE_CALL(cudaMemset(diff, 0, M*N*K * sizeof(double)));
     diff_dev = thrust::device_pointer_cast<double>(diff);
 
     CUDA_SAFE_CALL(cudaMemcpy(A_GPU, A, M*N*K * sizeof(double), cudaMemcpyHostToDevice));
-
-    auto time0 = std::chrono::high_resolution_clock::now();
+    clock_t t = clock();
 
     EPS = jac(A_GPU, M, N, K, ITMAX, MAXEPS);
 
-    auto time1 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = time1 - time0;
+    t = clock() - t;
+    double elapsed = 1.0 * t / CLOCKS_PER_SEC;
     printf("%dx%dx%d x %d\t<", M, N, K, ITMAX);
-    printf("%3.5f s.>\teps=%.4g\n", elapsed.count(), EPS);
+    printf("%3.5f s.>\teps=%.4g\n", elapsed, EPS);
 
     CUDA_SAFE_CALL(cudaMemcpy(A, A_GPU, M*N*K * sizeof(double), cudaMemcpyDeviceToHost));
     
@@ -199,8 +199,8 @@ double jac(double *a_gpu, int mm, int nn, int kk, int itmax, double maxeps)
                 diff_dev, diff_dev + vecSize, 0.0f, thrust::maximum<double>()
         );
 
-//        if (TRACE && it % TRACE == 0)
-//            printf("IT=%d eps=%.4g\n", it, eps);
+        if (TRACE && it % TRACE == 0)
+            printf("IT=%d eps=%.4g\n", it, eps);
         if (eps < maxeps) 
             break;
     }
