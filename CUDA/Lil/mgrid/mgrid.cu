@@ -23,16 +23,16 @@ FILE *in;
 int TRACE = 0;
 double EPS;
 int     M, N, K, ITMAX;
-double  MAXEPS = 0.01;
+double  MAXEPS = 0.0000001;
 
 double *A, *A_GPU;
-double *diff;
-thrust::device_ptr<double> diff_dev;
+
+int devCount = 0;
 
 #define A(i,j,k) A[((i)*N+(j))*K+(k)]
 #define a(i,j,k) a[((i)*nn+(j))*kk+(k)]
-#define diff(i,j,k) diff[((i)*nn+(j))*kk+(k)]
 #define a2(i,j,k) a2[((i)*n2+(j))*k2+(k)]
+#define tmp(d,i,j,k) tmp[d][((i)*nn+(j))*kk+(k)]
 
 double solution(int i, int j, int k)
 {
@@ -45,6 +45,8 @@ double jac(double *a, int mm, int nn, int kk, int itmax, double maxeps);
 int main(int an, char **as)
 {
     int i, j, k;
+    CUDA_SAFE_CALL(cudaGetDeviceCount(&devCount));
+
     in = fopen("data3.in", "r");
     if (in == NULL) { printf("Can not open 'data3.in' "); exit(1); }
     i = fscanf(in, "%d %d %d %d %d", &M, &N, &K, &ITMAX, &TRACE);
@@ -66,10 +68,6 @@ int main(int an, char **as)
             }
 
     CUDA_SAFE_CALL(cudaMalloc(&A_GPU, M*N*K * sizeof(double)));
-    CUDA_SAFE_CALL(cudaMalloc(&diff, M*N*K * sizeof(double)));
-    CUDA_SAFE_CALL(cudaMemset(diff, 0, M*N*K * sizeof(double)));
-    diff_dev = thrust::device_pointer_cast<double>(diff);
-
     CUDA_SAFE_CALL(cudaMemcpy(A_GPU, A, M*N*K * sizeof(double), cudaMemcpyHostToDevice));
     clock_t t = clock();
 
@@ -94,27 +92,52 @@ int main(int an, char **as)
 
     free(A);
     CUDA_SAFE_CALL(cudaFree(A_GPU));
-    CUDA_SAFE_CALL(cudaFree(diff));
     return 0;
 }
 
+#define diff(i,j,k) diff[((i)*(nn - 2)+(j))*(kk - 2)+(k)]
+#define border(j,k) border[(j)*kk+(k)]
+
 __global__
-void jac_kernel(double *a, int mm, int nn, int kk, double *diff) {
+void jac_kernel(double *a, int mm, int nn, int kk, double *diff, double *border, bool isLeft) {
     int k = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     int i = blockIdx.z * blockDim.z + threadIdx.z;
     if (i >= 1 && i <= mm - 2 && j >= 1 && j <= nn - 2 && k >= 1 && k <= kk - 2) {
         double tmp = (a(i - 1, j, k) + a(i + 1, j, k) + a(i, j - 1, k) + a(i, j + 1, k)
                       + a(i, j, k - 1) + a(i, j, k + 1)) / 6.;
-        diff(i, j, k) = fabsf(a(i, j, k) - tmp);
+        diff(i - 1, j - 1, k - 1) = fabsf(a(i, j, k) - tmp);
         a(i, j, k) = tmp;
+        if (isLeft && i == mm - 2) {
+            border(j, k) = tmp;
+        } else if (!isLeft && i == 1) {
+            border(j, k) = tmp;
+        }
     }
 }
 
-void run_jac_kernel(double *a, int mm, int nn, int kk, double *diff) {
+void run_jac_kernel(double *a, int mm, int nn, int kk, double *diff, double *border, bool isLeft) {
     dim3 gridDim = dim3((kk + 31) / 32, (nn + 31) / 32, mm);
     dim3 blockDim = dim3(32, 32, 1);
-    jac_kernel<<<gridDim, blockDim>>>(a, mm, nn, kk, diff);
+    jac_kernel<<<gridDim, blockDim>>>(a, mm, nn, kk, diff, border, isLeft);
+    CUDA_SAFE_CALL(cudaGetLastError());
+}
+
+
+__global__
+void writeBorder_kernel(double *a, int nn, int kk, double *border, int borderIdx) {
+    int k = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int i = borderIdx;
+    if (j >= 0 && j <= nn - 2 && k >= 1 && k <= kk - 2) {
+        a(i, j, k) = border(j, k);
+    }
+}
+
+void writeBorder(double *a, int nn, int kk, double *border, int borderIdx) {
+    dim3 gridDim = dim3((kk + 31) / 32, (nn + 31) / 32);
+    dim3 blockDim = dim3(32, 32);
+    writeBorder_kernel<<<gridDim, blockDim>>>(a, nn, kk, border, borderIdx);
     CUDA_SAFE_CALL(cudaGetLastError());
 }
 
@@ -170,10 +193,17 @@ void run_jac_kernel_inner2(double *a, int mm, int nn, int kk, double *a2, int n2
     CUDA_SAFE_CALL(cudaGetLastError());
 }
 
+void barrier() {
+    for (int device = 0; device < 2; ++device) {
+        CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+        CUDA_SAFE_CALL(cudaDeviceSynchronize());
+    }
+    CUDA_SAFE_CALL(cudaSetDevice(0));
+}
 
 double jac(double *a_gpu, int mm, int nn, int kk, int itmax, double maxeps)
 {
-    int it, vecSize = mm*nn*kk;
+    int it;
     double eps;
 
     if (mm > 31 && nn > 31) {
@@ -193,17 +223,133 @@ double jac(double *a_gpu, int mm, int nn, int kk, int itmax, double maxeps)
         CUDA_SAFE_CALL(cudaFree(a2_gpu));
     }
 
-    for (it = 1; it <= itmax; it++) {
-        run_jac_kernel(a_gpu, mm, nn, kk, diff);
-        eps = thrust::reduce(
-                diff_dev, diff_dev + vecSize, 0.0f, thrust::maximum<double>()
-        );
+    double *a = (double *) malloc(mm*nn*kk * sizeof(double));
+    CUDA_SAFE_CALL(cudaMemcpy(a, a_gpu, mm*nn*kk * sizeof(double), cudaMemcpyDeviceToHost));
 
-        if (TRACE && it % TRACE == 0)
+    int mid = mm / 2;
+    int vecSizes[] = {(mid + 1)*nn*kk, (mm - mid + 1)*nn*kk};
+    double **tmp = (double **) malloc(2 * sizeof(double *));
+    tmp[0] = (double *) malloc(vecSizes[0] * sizeof(double));
+    tmp[1] = (double *) malloc(vecSizes[1] * sizeof(double));
+
+    int i, j, k;
+    for (i = 0; i <= mid; i++)
+        for (j = 0; j <= nn - 1; j++)
+            for (k = 0; k <= kk - 1; k++) {
+                tmp(0, i, j, k) = a(i, j, k);
+            }
+
+    for (i = mid - 1; i <= mm - 1; i++)
+        for (j = 0; j <= nn - 1; j++)
+            for (k = 0; k <= kk - 1; k++) {
+                tmp(1, i - mid + 1, j, k) = a(i, j, k);
+            }
+
+    double **a_2gpus = (double **) malloc(2 * sizeof(double *));
+    for (int device = 0; device < 2; ++device) {
+        CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+        CUDA_SAFE_CALL(cudaMalloc(&a_2gpus[device], vecSizes[device] * sizeof(double)));
+        CUDA_SAFE_CALL(cudaMemcpyAsync(a_2gpus[device], tmp[device], vecSizes[device] * sizeof(double), cudaMemcpyHostToDevice));
+    }
+    barrier();
+
+    ///////////////////
+    int diffVecSize[] = {(mid - 1)*(nn - 2)*(kk - 2), (mm - mid - 1)*(nn - 2)*(kk - 2)};
+    int borderSize = nn * kk;
+
+    double **diff = (double **) malloc(2 * sizeof(double *));
+    double **borders = (double **) malloc(2 * sizeof(double *));
+    for (int device = 0; device < 2; ++device) {
+        CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+        CUDA_SAFE_CALL(cudaMalloc(&diff[device], diffVecSize[device] * sizeof(double)));
+        CUDA_SAFE_CALL(cudaMalloc(&borders[device], borderSize * sizeof(double)));
+    }
+
+    double **bordersTmp = (double **) malloc(2 * sizeof(double *));
+    bordersTmp[0] = (double *) malloc(borderSize * sizeof(double));
+    bordersTmp[1] = (double *) malloc(borderSize * sizeof(double));
+
+    int mms[] = {mid + 1, mm - mid + 1};
+    int borderIdxs[] = {mid, 0};
+    double epsD[2] = {0.0, 0.0};
+
+    for (it = 1; it <= itmax; it++)
+    {
+        for (int device = 0; device < 2; ++device) {
+            CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+            run_jac_kernel(a_2gpus[device], mms[device], nn, kk, diff[device], borders[device], device == 0);
+        }
+
+        for (int device = 0; device < 2; ++device) {
+            CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+            epsD[device] = thrust::reduce(
+                    thrust::device_pointer_cast<double>(diff[device]),
+                    thrust::device_pointer_cast<double>(diff[device]) + diffVecSize[device],
+                    0.0f, thrust::maximum<double>()
+            );
+        }
+
+        for (int device = 0; device < 2; ++device) {
+            CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+            CUDA_SAFE_CALL(cudaMemcpyAsync(bordersTmp[device], borders[device], borderSize * sizeof(double), cudaMemcpyDeviceToHost));
+        }
+        barrier();
+
+        for (int device = 0; device < 2; ++device) {
+            CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+            CUDA_SAFE_CALL(cudaMemcpyAsync(borders[device], bordersTmp[1 - device], borderSize * sizeof(double), cudaMemcpyHostToDevice));
+            writeBorder(a_2gpus[device], nn, kk, borders[device], borderIdxs[device]);
+        }
+
+        eps = Max(epsD[0], epsD[1]);
+
+        if (TRACE && it%TRACE == 0)
             printf("IT=%d eps=%.4g\n", it, eps);
-        if (eps < maxeps) 
+        if (eps < maxeps)
             break;
     }
+    for (int device = 0; device < 2; ++device) {
+        CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+        CUDA_SAFE_CALL(cudaFree(diff[device]));
+        CUDA_SAFE_CALL(cudaFree(borders[device]));
+    }
+    free(diff);
+    free(borders);
+    free(bordersTmp[0]);
+    free(bordersTmp[1]);
+    free(bordersTmp);
+    ///////////////////
+
+    for (int device = 0; device < 2; ++device) {
+        CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+        CUDA_SAFE_CALL(cudaMemcpyAsync(tmp[device], a_2gpus[device], vecSizes[device] * sizeof(double), cudaMemcpyDeviceToHost));
+    }
+    barrier();
+
+    for (i = 0; i <= mid - 1; i++)
+        for (j = 0; j <= nn - 1; j++)
+            for (k = 0; k <= kk - 1; k++) {
+                a(i, j, k) = tmp(0, i, j, k);
+            }
+
+    for (i = mid; i <= mm - 1; i++)
+        for (j = 0; j <= nn - 1; j++)
+            for (k = 0; k <= kk - 1; k++) {
+                a(i, j, k) = tmp(1, i - mid + 1, j, k);
+            }
+
+    CUDA_SAFE_CALL(cudaMemcpy(a_gpu, a, mm*nn*kk * sizeof(double), cudaMemcpyHostToDevice));
+
+    for (int device = 0; device < 2; ++device) {
+        free(tmp[device]);
+        CUDA_SAFE_CALL(cudaSetDevice(device % devCount));
+        CUDA_SAFE_CALL(cudaFree(a_2gpus[device]));
+    }
+    free(tmp);
+    free(a_2gpus);
+
+    barrier();
+
     return eps;
 }
 
