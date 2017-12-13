@@ -143,8 +143,8 @@ void jac_kernel(double *a, int mm, int nn, int kk, double *diff, double *border,
 }
 
 void run_jac_kernel(double *a, int mm, int nn, int kk, double *diff, double *border, bool isLeft) {
-    dim3 gridDim = dim3((kk + 31) / 32, (nn + 31) / 32, mm);
-    dim3 blockDim = dim3(32, 32, 1);
+    dim3 gridDim = dim3((kk + 15) / 16, (nn + 15) / 16, mm);
+    dim3 blockDim = dim3(16, 16, 1);
     jac_kernel<<<gridDim, blockDim>>>(a, mm, nn, kk, diff, border, isLeft);
     CUDA_SAFE_CALL(cudaGetLastError());
 }
@@ -161,8 +161,8 @@ void writeBorder_kernel(double *a, int nn, int kk, double *border, int borderIdx
 }
 
 void writeBorder(double *a, int nn, int kk, double *border, int borderIdx) {
-    dim3 gridDim = dim3((kk + 31) / 32, (nn + 31) / 32);
-    dim3 blockDim = dim3(32, 32);
+    dim3 gridDim = dim3((kk + 15) / 16, (nn + 15) / 16);
+    dim3 blockDim = dim3(16, 16);
     writeBorder_kernel<<<gridDim, blockDim>>>(a, nn, kk, border, borderIdx);
     CUDA_SAFE_CALL(cudaGetLastError());
 }
